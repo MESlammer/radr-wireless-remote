@@ -531,6 +531,7 @@
                 "DEBUG",
                 "MUTE",
                 "FORCE_UPDATE",
+                "UPDATE_SERVER_URL=\"https://acjajruwevyyatztbkdf.supabase.co/storage/v1/object/public/radr-firmware\"",
                 "HAVE_CONFIG_H",
                 "MBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\"",
                 "UNITY_INCLUDE_CONFIG_H",
