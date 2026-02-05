@@ -19,22 +19,22 @@ The filesystem update is particularly important for device support — it contai
 
 ## Update Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        OTA Update System                             │
-│                                                                      │
-│  ┌─────────────────────┐         ┌─────────────────────────────────┐│
-│  │   Firmware Update   │         │      Filesystem Update          ││
-│  │                     │         │                                 ││
-│  │  firmware.bin       │         │  littlefs.bin                   ││
-│  │  └─ Application     │         │  ├─ /registry.json              ││
-│  │     code            │         │  └─ /protocols/*.json           ││
-│  │                     │         │     └─ Buttplug.io device specs ││
-│  └─────────────────────┘         └─────────────────────────────────┘│
-│                                                                      │
-│  Update Server: Supabase Storage                                     │
-│  URL Pattern: {SERVER}/master/{firmware|littlefs}.bin                │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph OTA[OTA Update System]
+        direction LR
+        subgraph FW[Firmware Update]
+            FWBin[firmware.bin]
+            FWBin --> AppCode[Application Code]
+        end
+        subgraph FS[Filesystem Update]
+            FSBin[littlefs.bin]
+            FSBin --> Registry[/registry.json]
+            FSBin --> Protocols[/protocols/*.json]
+            Protocols --> ButtplugSpecs[Buttplug.io Device Specs]
+        end
+    end
+    Server[Supabase Storage] --> OTA
 ```
 
 ### Update Server
@@ -53,39 +53,22 @@ Binary URLs follow the pattern:
 
 Updates are managed by the RADR state machine. The update flow is triggered from the Settings menu.
 
-```
-┌──────────────┐
-│ settings     │
-│ menu         │
-└──────┬───────┘
-       │ User selects "Update Device"
-       ▼
-┌──────────────┐     WiFi not      ┌──────────────┐
-│   update     │◄──────────────────│ update.wifi  │
-│   (check)    │    connected      │   (portal)   │
-└──────┬───────┘                   └──────────────┘
-       │
-       ├─── hasFilesystemUpdate ───►┌──────────────┐
-       │                            │   update.    │
-       │                            │  filesystem  │
-       │                            └──────┬───────┘
-       │                                   │
-       │                                   ▼
-       ├─── hasSoftwareUpdate ────►┌──────────────┐
-       │                           │   update.    │
-       │                           │   software   │
-       │                           └──────┬───────┘
-       │                                  │
-       ▼                                  ▼
-┌──────────────┐                  ┌──────────────┐
-│ update.done  │                  │   restart    │
-│  (no updates)│                  │              │
-└──────┬───────┘                  └──────────────┘
-       │
-       ▼
-┌──────────────┐
-│   restart    │
-└──────────────┘
+```mermaid
+flowchart TD
+    SettingsMenu[settings_menu] -->|"User selects Update Device"| UpdateCheck{WiFi Connected?}
+    UpdateCheck -->|No| UpdateWifi[update.wifi]
+    UpdateWifi -->|"WiFi connects"| Update
+    UpdateCheck -->|Yes| Update[update]
+    
+    Update -->|hasFilesystemUpdate| UpdateFS[update.filesystem]
+    Update -->|hasSoftwareUpdate| UpdateSW[update.software]
+    Update -->|"No updates"| UpdateDone[update.done]
+    
+    UpdateFS -->|"Has software update"| UpdateSW
+    UpdateFS -->|"No software update"| Restart[restart]
+    
+    UpdateSW --> Restart
+    UpdateDone --> Restart
 ```
 
 ### State Transitions
@@ -161,18 +144,11 @@ The filesystem update does not trigger an automatic reboot. This allows both fil
 
 When the filesystem is updated, the Buttplug.io device registry is refreshed:
 
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  OTA downloads   │────▶│  LittleFS        │────▶│  initRegistry()  │
-│  littlefs.bin    │     │  partition       │     │  loads on boot   │
-│                  │     │  updated         │     │                  │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
-                                                           │
-                                                           ▼
-                                                  ┌──────────────────┐
-                                                  │  New devices     │
-                                                  │  supported       │
-                                                  └──────────────────┘
+```mermaid
+flowchart LR
+    OTA[OTA downloads littlefs.bin] --> LittleFS[LittleFS partition updated]
+    LittleFS --> Init["initRegistry() loads on boot"]
+    Init --> NewDevices[New devices supported]
 ```
 
 The registry is loaded at boot time by `initRegistry()` in `src/devices/registry.cpp`:
