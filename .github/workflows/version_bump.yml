@@ -61,6 +61,16 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Setup Python
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install PlatformIO Core
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: pip install --upgrade platformio
+
       - name: Setup Supabase CLI
         if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
         uses: supabase/setup-cli@v1
@@ -87,6 +97,42 @@ jobs:
         run: |
           chmod +x ./Software/scripts/version_bump.sh
           ./Software/scripts/version_bump.sh "$NEXT_VERSION"
+
+      - name: Build PlatformIO Project
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: |
+          cd Software
+          pio run -e production
+
+      - name: Build LittleFS filesystem image
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: |
+          cd Software
+          pio run --target buildfs -e production
+
+      - name: Upload firmware to Supabase master/
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: |
+          # Delete existing files
+          supabase storage rm "ss:///radr-firmware/master/firmware.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/partitions.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/bootloader.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/littlefs.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/manifest.json" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/version.json" --experimental --yes || true
+          
+          # Upload firmware binaries
+          supabase storage cp ./Software/.pio/build/production/firmware.bin "ss:///radr-firmware/master/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./Software/.pio/build/production/partitions.bin "ss:///radr-firmware/master/partitions.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./Software/.pio/build/production/bootloader.bin "ss:///radr-firmware/master/bootloader.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./Software/.pio/build/production/littlefs.bin "ss:///radr-firmware/master/littlefs.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          
+          # Create and upload manifest.json for master
+          cat .github/artifacts/manifest.json | sed "s/{{ branchName }}/master/g" > ./manifest.json
+          supabase storage cp ./manifest.json "ss:///radr-firmware/master/manifest.json" --content-type "application/json" --cache-control "no-cache" --experimental
+          
+          # Upload version.json
+          supabase storage cp ./version.json "ss:///radr-firmware/master/version.json" --content-type "application/json" --cache-control "no-cache" --experimental
 
       - name: Merge origin/main with -X ours strategy
         if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}

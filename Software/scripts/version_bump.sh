@@ -58,13 +58,3 @@ cat > ./version.json << JSON
 JSON
 
 echo "[RADR] version.json created successfully"
-
-# Upload version.json to Supabase (if running in CI with Supabase CLI available)
-if command -v supabase &> /dev/null; then
-  echo "[RADR] Uploading version.json to Supabase"
-  supabase storage rm "ss:///radr-firmware/master/version.json" --experimental --yes || true
-  supabase storage cp ./version.json "ss:///radr-firmware/master/version.json" --content-type "application/json" --cache-control "no-cache" --experimental
-  echo "[RADR] version.json uploaded to Supabase successfully"
-else
-  echo "[RADR] Supabase CLI not available, skipping upload"
-fi
