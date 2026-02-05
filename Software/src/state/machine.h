@@ -33,10 +33,16 @@ struct ossm_remote_state {
 
             "main_menu"_s + on_entry<_> / drawMainMenu,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::DEVICE_SEARCH)] = "device_search"_s,
+            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::UPDATE)] = "update"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::SETTINGS)] = "settings_menu"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::DEEP_SLEEP)] = "deep_sleep"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::RESTART)] = "restart"_s,
             "main_menu"_s + event<connected_event> / start = "device_draw_control"_s,
+
+            "update"_s + on_entry<_> / (drawPage(updatePage), checkForUpdate),
+            "update"_s + event<left_button_pressed> = "main_menu"_s,
+            "update"_s + event<right_button_pressed>[isOption<>(MenuItemE::BACK)] = "main_menu"_s,
+            "update"_s + event<right_button_pressed>[isOption<>(MenuItemE::RESTART)] = "restart"_s,
 
             "settings_menu"_s + on_entry<_> / drawSettingsMenu,
             "settings_menu"_s + event<left_button_pressed> = "main_menu"_s,

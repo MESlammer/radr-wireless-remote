@@ -13,6 +13,12 @@ struct TextPage {
     String rightButtonText = EMPTY_STRING;
 };
 
+static const TextPage updatePage = {
+    .title = UPDATING_TITLE,
+    .description = UPDATING_DESCRIPTION,
+    .leftButtonText = CANCEL_STRING,
+};
+
 static const TextPage deviceSearchPage = {
     .title = DEVICE_SEARCH_TITLE,
     .description = DEVICE_SEARCH_DESCRIPTION,

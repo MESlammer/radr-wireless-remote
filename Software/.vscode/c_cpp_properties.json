@@ -529,6 +529,8 @@
                 "CORE_DEBUG_LEVEL=4",
                 "CONFIG_NIMBLE_CPP_LOG_LEVEL=2",
                 "DEBUG",
+                "MUTE",
+                "FORCE_UPDATE",
                 "HAVE_CONFIG_H",
                 "MBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\"",
                 "UNITY_INCLUDE_CONFIG_H",

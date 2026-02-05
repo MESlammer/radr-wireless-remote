@@ -123,7 +123,7 @@ namespace actions {
     };
 
     auto play = [](BuzzerPattern pattern) {
-                return [](BuzzerPattern pattern) { playBuzzerPattern(pattern); };
+        return [](BuzzerPattern pattern) { playBuzzerPattern(pattern); };
     };
 
     auto selectDevice = []() { connectToDiscoveredDevice(currentOption); };
@@ -156,6 +156,11 @@ namespace actions {
     auto onDeviceMenuItemSelected = []() {
         device->onDeviceMenuItemSelected(currentOption);
     };
+
+    auto checkForUpdate = []() { 
+        // TODO: basically just say yes.
+
+     };
 
     auto drawMainMenu = []() {
         // Release all individual LED controls back to global control
