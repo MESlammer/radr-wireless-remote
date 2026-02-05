@@ -258,6 +258,32 @@ jobs:
           # Upload the manifest file to Supabase Storage
           supabase storage cp ./manifest.json "ss:///radr-firmware/$BRANCH_PATH/manifest.json" --content-type "application/json" --cache-control "no-cache" --experimental
 
+      - name: Upload data directory to Supabase Storage
+        run: |
+          BRANCH_PATH="${{ steps.encode_branch.outputs.encoded_branch }}"
+          
+          # Upload root data files (metadata.json, registry.json)
+          for file in Software/data/*.json; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Uploading data/$filename"
+              supabase storage rm "ss:///radr-firmware/$BRANCH_PATH/data/$filename" --experimental --yes || true
+              supabase storage cp "$file" "ss:///radr-firmware/$BRANCH_PATH/data/$filename" --content-type "application/json" --cache-control "no-cache" --experimental
+            fi
+          done
+          
+          # Upload all protocol files from data/protocols/
+          if [ -d "Software/data/protocols" ]; then
+            for file in Software/data/protocols/*.json; do
+              if [ -f "$file" ]; then
+                filename=$(basename "$file")
+                echo "Uploading data/protocols/$filename"
+                supabase storage rm "ss:///radr-firmware/$BRANCH_PATH/data/protocols/$filename" --experimental --yes || true
+                supabase storage cp "$file" "ss:///radr-firmware/$BRANCH_PATH/data/protocols/$filename" --content-type "application/json" --cache-control "no-cache" --experimental
+              fi
+            done
+          fi
+
       - name: Upload updated registry.json
         run: |
           # Delete existing registry.json if it exists, then upload the updated one

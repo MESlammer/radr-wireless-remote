@@ -103,12 +103,13 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"prefix\": \"${PREFIX}\", \"limit\": 1000}")
 
-          # Extract file names and delete any that aren't our 4 target files
+          # Extract file names and delete any that aren't our target files or data directory
           echo "$RESPONSE" | jq -r '.[]?.name // empty' | while read -r file; do
             if [ -n "$file" ]; then
               # Remove the prefix to get just the filename
               filename="${file#$PREFIX}"
-              if [[ "$filename" != "firmware.bin" && "$filename" != "partitions.bin" && "$filename" != "bootloader.bin" && "$filename" != "manifest.json" ]]; then
+              # Keep firmware files, manifest, and data directory
+              if [[ "$filename" != "firmware.bin" && "$filename" != "partitions.bin" && "$filename" != "bootloader.bin" && "$filename" != "manifest.json" && "$filename" != "data" && ! "$filename" =~ ^data/ ]]; then
                 echo "Removing unexpected file: $file"
                 curl -s -X DELETE "https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/${BUCKET}/${file}" \
                   -H "apikey: ${SUPABASE_ACCESS_TOKEN}" \
@@ -135,6 +136,30 @@ jobs:
 
           # Upload the manifest file to Supabase Storage
           supabase storage cp ./manifest.json "ss:///radr-firmware/master/manifest.json" --content-type "application/json" --cache-control "no-cache" --experimental
+
+      - name: Upload data directory to Supabase Storage
+        run: |
+          # Upload root data files (metadata.json, registry.json)
+          for file in Software/data/*.json; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Uploading data/$filename"
+              supabase storage rm "ss:///radr-firmware/master/data/$filename" --experimental --yes || true
+              supabase storage cp "$file" "ss:///radr-firmware/master/data/$filename" --content-type "application/json" --cache-control "no-cache" --experimental
+            fi
+          done
+          
+          # Upload all protocol files from data/protocols/
+          if [ -d "Software/data/protocols" ]; then
+            for file in Software/data/protocols/*.json; do
+              if [ -f "$file" ]; then
+                filename=$(basename "$file")
+                echo "Uploading data/protocols/$filename"
+                supabase storage rm "ss:///radr-firmware/master/data/protocols/$filename" --experimental --yes || true
+                supabase storage cp "$file" "ss:///radr-firmware/master/data/protocols/$filename" --content-type "application/json" --cache-control "no-cache" --experimental
+              fi
+            done
+          fi
 
       - name: Download registry.json
         id: download_registry
