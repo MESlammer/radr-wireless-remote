@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Validate argument
 if [[ -z "$1" ]]; then
   echo "Error: Version argument required (format: X.Y.Z)"
@@ -26,34 +28,27 @@ if ! [[ "$major" =~ ^[0-9]+$ ]] || ! [[ "$minor" =~ ^[0-9]+$ ]] || ! [[ "$patch"
     echo "Error: Version components must be numeric. Got: major=$major, minor=$minor, patch=$patch"
     exit 1
 fi
-# Update src/constants/Version.h
-cat > src/constants/Version.h << EOF
-#ifndef OSSM_REMOTE_VERSION_H
-#define OSSM_REMOTE_VERSION_H
+
+echo "[RADR] Updating Version.h to $new_version_string"
+
+# Update Software/src/constants/Version.h
+cat > Software/src/constants/Version.h << EOF
+#ifndef RADR_VERSION_H
+#define RADR_VERSION_H
 
 #define VERSION "$new_version_string"
 #define MAJOR_VERSION $major
 #define MINOR_VERSION $minor
 #define PATCH_VERSION $patch
 
-#endif  // OSSM_REMOTE_VERSION_H
+#endif  // RADR_VERSION_H
 EOF
 
-# Now, pip install platformio and build the project for production.
-pip install -U platformio
+echo "[RADR] Version.h updated successfully"
 
-# Build the project
-platformio run -e production
-
-# Create versioned and latest directories
-mkdir -p ./docs/v/$new_version_string
-mkdir -p ./docs/v/latest
-
-cp ./.pio/build/production/firmware.bin ./docs/v/$new_version_string/firmware.bin
-cp ./.pio/build/production/firmware.bin ./docs/v/latest/firmware.bin
-
-# Create version.json for versioned and latest directories
-cat > ./docs/v/$new_version_string/version.json << JSON
+# Create version.json for Supabase upload
+echo "[RADR] Creating version.json"
+cat > ./version.json << JSON
 {
   "version": "$new_version_string",
   "major": $major,
@@ -62,7 +57,4 @@ cat > ./docs/v/$new_version_string/version.json << JSON
 }
 JSON
 
-cp ./docs/v/$new_version_string/version.json ./docs/v/latest/version.json
-
-# and finally, update the docs site
-./scripts/update_docs_site.sh
+echo "[RADR] version.json created successfully"

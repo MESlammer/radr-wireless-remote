@@ -1,61 +1,67 @@
-name: Release Latest as Alpha
+name: Release Master as Alpha
 
 on:
   workflow_dispatch:
-    inputs: {}
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 jobs:
   release-alpha:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Copy latest to alpha
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Download files from master/
         run: |
-          rm -rf ./docs/alpha/*
-          cp -r ./docs/v/latest/* ./docs/alpha/
+          mkdir -p ./firmware
+          supabase storage cp "ss:///radr-firmware/master/firmware.bin" ./firmware/firmware.bin --experimental
+          supabase storage cp "ss:///radr-firmware/master/partitions.bin" ./firmware/partitions.bin --experimental
+          supabase storage cp "ss:///radr-firmware/master/bootloader.bin" ./firmware/bootloader.bin --experimental
+          supabase storage cp "ss:///radr-firmware/master/littlefs.bin" ./firmware/littlefs.bin --experimental
+          supabase storage cp "ss:///radr-firmware/master/version.json" ./firmware/version.json --experimental
 
       - name: Get Version
         id: get_version
         run: |
-          VERSION=$(jq -r .version ./docs/v/latest/version.json)
+          VERSION=$(jq -r .version ./firmware/version.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version $VERSION to alpha"
 
-      - name: Create Pull Request
-        if: ${{ github.event.sender.login != 'github-actions[bot]' }}
-        id: cpr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "AUTO: Release new Alpha version ${{ steps.get_version.outputs.version }}"
-          title: "AUTO: Release new Alpha version ${{ steps.get_version.outputs.version }}"
-          body: "Automated Alpha release PR for version ${{ steps.get_version.outputs.version }}"
-          branch: "auto/release-alpha-${{ steps.get_version.outputs.version }}"
-          base: main
-          delete-branch: true
-
-      - name: Enable Pull Request Auto-merge
-        if: ${{ steps.cpr.outputs.pull-request-number }}
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: squash
-
-      - name: Set success status for bot commits or no changes
-        if: ${{ github.event.sender.login == 'github-actions[bot]' }}
+      - name: Upload files to alpha/
         run: |
-          if [ "${{ github.event.sender.login }}" == "github-actions[bot]" ]; then
-            echo "No Alpha release needed - commit was from bot"
-          else
-            echo "No Alpha release needed - no changes in docs/alpha directory"
-          fi
-          exit 0
+          # Delete existing files in alpha/
+          supabase storage rm "ss:///radr-firmware/alpha/firmware.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/alpha/partitions.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/alpha/bootloader.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/alpha/littlefs.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/alpha/manifest.json" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/alpha/version.json" --experimental --yes || true
+          
+          # Upload firmware binaries
+          supabase storage cp ./firmware/firmware.bin "ss:///radr-firmware/alpha/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./firmware/partitions.bin "ss:///radr-firmware/alpha/partitions.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./firmware/bootloader.bin "ss:///radr-firmware/alpha/bootloader.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./firmware/littlefs.bin "ss:///radr-firmware/alpha/littlefs.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          
+          # Create and upload manifest.json for alpha
+          cat .github/artifacts/manifest.json | sed "s/{{ branchName }}/alpha/g" > ./manifest.json
+          supabase storage cp ./manifest.json "ss:///radr-firmware/alpha/manifest.json" --content-type "application/json" --cache-control "no-cache" --experimental
+          
+          # Upload version.json
+          supabase storage cp ./firmware/version.json "ss:///radr-firmware/alpha/version.json" --content-type "application/json" --cache-control "no-cache" --experimental
+
+      - name: Summary
+        run: |
+          echo "✅ Released v${{ steps.get_version.outputs.version }} to alpha channel"
+          echo ""
+          echo "Firmware URL: https://acjajruwevyyatztbkdf.supabase.co/storage/v1/object/public/radr-firmware/alpha/"

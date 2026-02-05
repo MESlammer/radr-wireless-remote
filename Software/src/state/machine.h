@@ -5,6 +5,7 @@
 #include "events.hpp"
 #include "guards.hpp"
 #include "pages/controller.h"
+#include "tasks/update.h"
 
 namespace sml = boost::sml;
 
@@ -33,22 +34,40 @@ struct ossm_remote_state {
 
             "main_menu"_s + on_entry<_> / drawMainMenu,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::DEVICE_SEARCH)] = "device_search"_s,
-            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::UPDATE)] = "update"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::SETTINGS)] = "settings_menu"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::DEEP_SLEEP)] = "deep_sleep"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::RESTART)] = "restart"_s,
             "main_menu"_s + event<connected_event> / start = "device_draw_control"_s,
 
-            "update"_s + on_entry<_> / (drawPage(updatePage), checkForUpdate),
-            "update"_s + event<left_button_pressed> = "main_menu"_s,
-            "update"_s + event<right_button_pressed>[isOption<>(MenuItemE::BACK)] = "main_menu"_s,
-            "update"_s + event<right_button_pressed>[isOption<>(MenuItemE::RESTART)] = "restart"_s,
 
             "settings_menu"_s + on_entry<_> / drawSettingsMenu,
             "settings_menu"_s + event<left_button_pressed> = "main_menu"_s,
             "settings_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::BACK)] = "main_menu"_s,
             "settings_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::WIFI_SETTINGS)] = "wmConfig"_s,
+            "settings_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::UPDATE) && isOnline<>] = "update"_s,
+            "settings_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::UPDATE)] = "update.wifi"_s,
             "settings_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::RESTART)] = "restart"_s,
+
+
+
+            "update"_s + on_entry<_> / (drawPage(updatePage), startTask(updateTask, updateTaskName, updateTaskHandle)),
+            "update"_s + event<done> [hasFilesystemUpdate<>] = "update.filesystem"_s,
+            "update"_s + event<done> [hasSoftwareUpdate<>] = "update.software"_s,
+            "update"_s + event<done> = "update.done"_s,
+            "update.filesystem"_s + on_entry<_> / (drawPage(updateFilesystemPage), startTask(updateTask, updateTaskName, updateTaskHandle)),
+            "update.filesystem"_s + event<done>[hasSoftwareUpdate<>] = "update.software"_s,
+            "update.filesystem"_s + event<done> = "update.done"_s,
+            "update.software"_s + on_entry<_> / (drawPage(updateSoftwarePage), startTask(updateTask, updateTaskName, updateTaskHandle)),
+            "update.software"_s + event<done> = "restart"_s,
+            "update.done"_s + on_entry<_> / (drawPage(updateDonePage)),
+            "update.done"_s + event<left_button_pressed> = "restart"_s,
+            "update.done"_s + event<right_button_pressed> = "restart"_s,
+
+            
+            "update.wifi"_s + on_entry<_> / (drawPage(wifiSettingsPage), startWiFiPortal),
+            "update.wifi"_s + event<left_button_pressed> = "settings_menu"_s,
+            "update.wifi"_s + event<wifi_connected>  = "update"_s,
+            "update.wifi"_s + boost::sml::on_exit<_> / stopWiFiPortal,
 
             "wmConfig"_s + on_entry<_> / (drawPage(wifiSettingsPage), startWiFiPortal),
             "wmConfig"_s + event<left_button_pressed> = "settings_menu"_s,

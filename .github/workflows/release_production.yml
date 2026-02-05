@@ -2,61 +2,66 @@ name: Release Alpha as Production
 
 on:
   workflow_dispatch:
-    inputs: {}
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 jobs:
   release-production:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Copy alpha to production
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Download files from alpha/
         run: |
-          rm -rf ./docs/production/*
-          cp -r ./docs/alpha/* ./docs/production/
-          cp ./docs/alpha/version.json ./docs/version.json
+          mkdir -p ./firmware
+          supabase storage cp "ss:///radr-firmware/alpha/firmware.bin" ./firmware/firmware.bin --experimental
+          supabase storage cp "ss:///radr-firmware/alpha/partitions.bin" ./firmware/partitions.bin --experimental
+          supabase storage cp "ss:///radr-firmware/alpha/bootloader.bin" ./firmware/bootloader.bin --experimental
+          supabase storage cp "ss:///radr-firmware/alpha/littlefs.bin" ./firmware/littlefs.bin --experimental
+          supabase storage cp "ss:///radr-firmware/alpha/version.json" ./firmware/version.json --experimental
 
       - name: Get Version
         id: get_version
         run: |
-          VERSION=$(jq -r .version ./docs/alpha/version.json)
+          VERSION=$(jq -r .version ./firmware/version.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version $VERSION to production"
 
-      - name: Create Pull Request
-        if: ${{ github.event.sender.login != 'github-actions[bot]' }}
-        id: cpr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "AUTO: Release new Production version ${{ steps.get_version.outputs.version }}"
-          title: "AUTO: Release new Production version ${{ steps.get_version.outputs.version }}"
-          body: "Automated Production release PR for version ${{ steps.get_version.outputs.version }}"
-          branch: "auto/release-production-${{ steps.get_version.outputs.version }}"
-          base: main
-          delete-branch: true
-
-      - name: Enable Pull Request Auto-merge
-        if: ${{ steps.cpr.outputs.pull-request-number }}
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: squash
-
-      - name: Set success status for bot commits or no changes
-        if: ${{ github.event.sender.login == 'github-actions[bot]' }}
+      - name: Upload files to production/
         run: |
-          if [ "${{ github.event.sender.login }}" == "github-actions[bot]" ]; then
-            echo "No Production release needed - commit was from bot"
-          else
-            echo "No Production release needed - no changes in docs/production directory"
-          fi
-          exit 0
+          # Delete existing files in production/
+          supabase storage rm "ss:///radr-firmware/production/firmware.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/production/partitions.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/production/bootloader.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/production/littlefs.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/production/manifest.json" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/production/version.json" --experimental --yes || true
+          
+          # Upload firmware binaries
+          supabase storage cp ./firmware/firmware.bin "ss:///radr-firmware/production/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./firmware/partitions.bin "ss:///radr-firmware/production/partitions.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./firmware/bootloader.bin "ss:///radr-firmware/production/bootloader.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./firmware/littlefs.bin "ss:///radr-firmware/production/littlefs.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          
+          # Create and upload manifest.json for production
+          cat .github/artifacts/manifest.json | sed "s/{{ branchName }}/production/g" > ./manifest.json
+          supabase storage cp ./manifest.json "ss:///radr-firmware/production/manifest.json" --content-type "application/json" --cache-control "no-cache" --experimental
+          
+          # Upload version.json
+          supabase storage cp ./firmware/version.json "ss:///radr-firmware/production/version.json" --content-type "application/json" --cache-control "no-cache" --experimental
+
+      - name: Summary
+        run: |
+          echo "✅ Released v${{ steps.get_version.outputs.version }} to production channel"
+          echo ""
+          echo "Firmware URL: https://acjajruwevyyatztbkdf.supabase.co/storage/v1/object/public/radr-firmware/production/"

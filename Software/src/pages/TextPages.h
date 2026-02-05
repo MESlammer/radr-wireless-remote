@@ -19,6 +19,24 @@ static const TextPage updatePage = {
     .leftButtonText = CANCEL_STRING,
 };
 
+static const TextPage updateFilesystemPage = {
+    .title = "Updating Filesystem",
+    .description = "Updating filesystem...",
+    .leftButtonText = CANCEL_STRING,
+};
+
+static const TextPage updateSoftwarePage = {
+    .title = "Updating Software",
+    .description = "Updating software...",
+    .leftButtonText = CANCEL_STRING,
+};
+
+static const TextPage updateDonePage = {
+    .title = "Update Complete",
+    .description = "Update complete!",
+    .leftButtonText = CANCEL_STRING,
+};
+
 static const TextPage deviceSearchPage = {
     .title = DEVICE_SEARCH_TITLE,
     .description = DEVICE_SEARCH_DESCRIPTION,

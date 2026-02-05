@@ -34,10 +34,10 @@ static const char DEEP_SLEEP_NAME[] PROGMEM = "Sleep";
 
 static const char WIFI_SETTINGS_TITLE[] PROGMEM = "WiFi Settings";
 static const char WIFI_SETTINGS_DESCRIPTION[] PROGMEM =
-    "Join the network called 'OSSM Remote Setup' to configure WiFi on this "
+    "Join the network called 'RADR Setup' to configure WiFi on this "
     "device.";
 static const char WIFI_SETTINGS_QR_VALUE[] PROGMEM =
-    "WIFI:S:OSSM Remote Setup;T:nopass;;";
+    "WIFI:S:RADR Setup;T:nopass;;";
 
 static const char WIFI_CONNECTED_TITLE[] PROGMEM = "Wi-Fi Connected";
 static const char WIFI_CONNECTED_DESCRIPTION[] PROGMEM =

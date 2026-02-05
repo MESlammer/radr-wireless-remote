@@ -126,6 +126,16 @@ namespace actions {
         return [](BuzzerPattern pattern) { playBuzzerPattern(pattern); };
     };
 
+    constexpr auto startTask = [](auto task, const char *taskName,
+                                  TaskHandle_t handle, uint8_t size = 10,
+                                  uint8_t core = 1) {
+        return [task, taskName, handle, size, core]() mutable {
+            xTaskCreatePinnedToCore(task, taskName,
+                                    size * configMINIMAL_STACK_SIZE, nullptr, 1,
+                                    &handle, core);
+        };
+    };
+
     auto selectDevice = []() { connectToDiscoveredDevice(currentOption); };
 
     auto clearDeviceList = []() { clearDiscoveredDevices(); };
@@ -157,10 +167,9 @@ namespace actions {
         device->onDeviceMenuItemSelected(currentOption);
     };
 
-    auto checkForUpdate = []() { 
+    auto checkForUpdate = []() {
         // TODO: basically just say yes.
-
-     };
+    };
 
     auto drawMainMenu = []() {
         // Release all individual LED controls back to global control
@@ -202,7 +211,7 @@ namespace actions {
         wm.setConnectRetries(5);
         wm.setEnableConfigPortal(true);
         wm.setCleanConnect(true);
-        wm.startConfigPortal("OSSM Remote Setup");
+        wm.startConfigPortal("RADR Setup");
 
         // if the wifi is not currently connected then make a small task the
         // looks for the wifi connection and sends an event.

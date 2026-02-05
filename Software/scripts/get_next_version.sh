@@ -8,7 +8,7 @@ if [[ "$GITHUB_ACTIONS_DEBUG" == "1" ]]; then
   set -x
 fi
 
-echo "::group::[OSSM-Remote] Starting get_next_version.sh"
+echo "::group::[RADR] Starting get_next_version.sh"
 echo "[INFO] Script invoked with arguments: $@"
 
 commitMsg="$1"
@@ -20,7 +20,7 @@ if [[ -z "$commitMsg" ]]; then
   exit 1
 fi
 
-echo "::group::[OSSM-Remote] Determine bump type from commit message"
+echo "::group::[RADR] Determine bump type from commit message"
 shopt -s nocasematch
 if [[ "$commitMsg" == major* ]]; then
   BUMP_TYPE="major"
@@ -67,8 +67,8 @@ version_gte() {
   return 0
 }
 
-echo "::group::[OSSM-Remote] Fetch remote version"
-REMOTE_JSON=$(curl -sfL "https://researchanddesire.github.io/rad-remote/v/latest/version.json" || echo "null")
+echo "::group::[RADR] Fetch remote version from Supabase"
+REMOTE_JSON=$(curl -sfL "https://acjajruwevyyatztbkdf.supabase.co/storage/v1/object/public/radr-firmware/master/version.json" || echo "null")
 REMOTE_VERSION=""
 if [[ "$REMOTE_JSON" != "null" ]]; then
   REMOTE_VERSION=$(echo "$REMOTE_JSON" | grep -oE '"version" *: *"[0-9]+\.[0-9]+\.[0-9]+"' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
@@ -78,17 +78,17 @@ else
 fi
 echo "::endgroup::"
 
-echo "::group::[OSSM-Remote] Read local version"
-if [[ ! -f docs/v/latest/version.json ]]; then
-  echo "::error::[ERROR] Local version file docs/v/latest/version.json not found!"
+echo "::group::[RADR] Read local version from Version.h"
+VERSION_H_FILE="Software/src/constants/Version.h"
+if [[ ! -f "$VERSION_H_FILE" ]]; then
+  echo "::error::[ERROR] Local version file $VERSION_H_FILE not found!"
   exit 1
 fi
-LOCAL_JSON=$(cat docs/v/latest/version.json)
-LOCAL_VERSION=$(echo "$LOCAL_JSON" | grep -oE '"version" *: *"[0-9]+\.[0-9]+\.[0-9]+"' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+LOCAL_VERSION=$(grep -oE '#define VERSION "[0-9]+\.[0-9]+\.[0-9]+"' "$VERSION_H_FILE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 echo "[INFO] Local version: $LOCAL_VERSION"
 echo "::endgroup::"
 
-echo "::group::[OSSM-Remote] Compare remote and local versions"
+echo "::group::[RADR] Compare remote and local versions"
 USE_VERSION="$LOCAL_VERSION"
 if [[ -n "$REMOTE_VERSION" ]]; then
   v1=($(parse_version "$REMOTE_VERSION"))
@@ -104,7 +104,7 @@ else
 fi
 echo "::endgroup::"
 
-echo "::group::[OSSM-Remote] Bump version"
+echo "::group::[RADR] Bump version"
 parse_out="$(parse_version "$USE_VERSION")"
 read ver_major ver_minor ver_patch <<< "$parse_out"
 echo "[INFO] Current version: $ver_major.$ver_minor.$ver_patch"
@@ -128,7 +128,7 @@ NEW_VERSION="$ver_major.$ver_minor.$ver_patch"
 echo "[INFO] New version: $NEW_VERSION"
 echo "::endgroup::"
 
-echo "::notice::[OSSM-Remote] Next version: $NEW_VERSION"
+echo "::notice::[RADR] Next version: $NEW_VERSION"
 echo "$NEW_VERSION"
 
 if [[ -n "$GITHUB_OUTPUT" ]]; then

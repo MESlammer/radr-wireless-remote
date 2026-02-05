@@ -7,26 +7,44 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
 
 jobs:
   update-version:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
     steps:
-      - name: Exit early if sender name ends with [bot]
-        if: ${{ endsWith(github.event.sender.login, '[bot]') }}
+      - name: Check if sender is a bot
+        id: bot_check
         run: |
-          echo "Exiting early: sender name ends with [bot]"
-          exit 0
+          if [[ "${{ github.event.sender.login }}" == "github-actions[bot]" || "${{ github.event.sender.login }}" == "rad-version-control[bot]" ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "Exiting early: sender is ${{ github.event.sender.login }}"
+          else
+            echo "is_bot=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate GitHub App Token
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' }}
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RAD_VERSION_CONTROL_APP_ID }}
+          private-key: ${{ secrets.RAD_VERSION_CONTROL_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
 
       - name: Checkout code
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
 
       - name: Exit early if only markdown files changed
-        if: ${{ !endsWith(github.event.sender.login, '[bot]') }}
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' }}
+        id: check_changes
         run: |
           # Get list of changed files in the last commit
           CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
@@ -36,13 +54,31 @@ jobs:
           NON_MD_FILES=$(echo "$CHANGED_FILES" | grep -v '\.md$' | grep -v '^$')
 
           if [ -z "$NON_MD_FILES" ] && [ -n "$CHANGED_FILES" ]; then
-            echo "Exiting early: only markdown files changed"
-            exit 0
+            echo "Only markdown files changed, skipping version bump"
+            echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "Non-markdown files changed, proceeding with version bump"
+            echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Setup Python
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install PlatformIO Core
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: pip install --upgrade platformio
+
+      - name: Setup Supabase CLI
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Get next version
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
         id: get_next_version
         run: |
           chmod +x ./Software/scripts/get_next_version.sh
@@ -53,63 +89,81 @@ jobs:
         shell: bash
 
       - name: Update version
-        if: ${{ !endsWith(github.event.sender.login, '[bot]') }}
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           NEXT_VERSION: ${{ steps.get_next_version.outputs.NEXT_VERSION }}
         id: version_update
         run: |
           chmod +x ./Software/scripts/version_bump.sh
           ./Software/scripts/version_bump.sh "$NEXT_VERSION"
 
+      - name: Build PlatformIO Project
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: |
+          cd Software
+          pio run -e production
+
+      - name: Build LittleFS filesystem image
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: |
+          cd Software
+          pio run --target buildfs -e production
+
+      - name: Upload firmware to Supabase master/
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
+        run: |
+          # Delete existing files
+          supabase storage rm "ss:///radr-firmware/master/firmware.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/partitions.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/bootloader.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/littlefs.bin" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/manifest.json" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/master/version.json" --experimental --yes || true
+          
+          # Upload firmware binaries
+          supabase storage cp ./Software/.pio/build/production/firmware.bin "ss:///radr-firmware/master/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./Software/.pio/build/production/partitions.bin "ss:///radr-firmware/master/partitions.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./Software/.pio/build/production/bootloader.bin "ss:///radr-firmware/master/bootloader.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          supabase storage cp ./Software/.pio/build/production/littlefs.bin "ss:///radr-firmware/master/littlefs.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
+          
+          # Create and upload manifest.json for master
+          cat .github/artifacts/manifest.json | sed "s/{{ branchName }}/master/g" > ./manifest.json
+          supabase storage cp ./manifest.json "ss:///radr-firmware/master/manifest.json" --content-type "application/json" --cache-control "no-cache" --experimental
+          
+          # Upload version.json
+          supabase storage cp ./version.json "ss:///radr-firmware/master/version.json" --content-type "application/json" --cache-control "no-cache" --experimental
+
       - name: Merge origin/main with -X ours strategy
-        if: ${{ !endsWith(github.event.sender.login, '[bot]') }}
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git merge origin/main -X ours --no-edit
 
-      - name: Create Pull Request
-        if: ${{ !endsWith(github.event.sender.login, '[bot]') }}
-        id: cpr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "AUTO: Version bump ${{ steps.get_next_version.outputs.NEXT_VERSION }}"
-          title: "AUTO: Version bump ${{ steps.get_next_version.outputs.NEXT_VERSION }}"
-          body: "Automated version bump PR"
-          branch: "auto/version-bump-${{ steps.get_next_version.outputs.NEXT_VERSION }}"
-          base: main
-          delete-branch: true
-
-      - name: Tag commit with version
-        if: ${{ steps.cpr.outputs.pull-request-number }}
+      - name: Commit, tag, and push to main
+        if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
         env:
           NEXT_VERSION: ${{ steps.get_next_version.outputs.NEXT_VERSION }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          git fetch origin "auto/version-bump-${NEXT_VERSION}"
-          git checkout "auto/version-bump-${NEXT_VERSION}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "rad-version-control[bot]"
+          git config user.email "rad-version-control[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "AUTO: Version bump ${NEXT_VERSION}" || echo "No changes to commit"
           git tag "$NEXT_VERSION"
+          git push origin main
           git push origin "$NEXT_VERSION"
 
-      - name: Enable Pull Request Auto-merge
-        if: ${{ steps.cpr.outputs.pull-request-number }}
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: squash
-
-      - name: Set success status for bot commits or no src changes
-        if: ${{ endsWith(github.event.sender.login, '[bot]') }}
+      - name: Set success status for bot commits
+        if: ${{ steps.bot_check.outputs.is_bot == 'true' }}
         run: |
-          if [[ "${{ github.event.sender.login }}" == *"[bot]" ]]; then
-            echo "No version bump needed - commit was from bot"
-          else
-            echo "No version bump needed - no changes in src directory"
-          fi
+          echo "No version bump needed - commit was from bot (${{ github.event.sender.login }})"
+          exit 0
+
+      - name: Set success status for markdown-only changes
+        if: ${{ steps.check_changes.outputs.skip == 'true' }}
+        run: |
+          echo "No version bump needed - only markdown files changed"
           exit 0
