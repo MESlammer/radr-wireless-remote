@@ -148,7 +148,7 @@ jobs:
           echo "Diff file: /tmp/changes.diff" >> /tmp/prompt.txt
           
           PROMPT=$(cat /tmp/prompt.txt)
-          agent --print --model claude-sonnet --force --workspace "$(pwd)" "$PROMPT" || echo "Changelog update skipped"
+          agent --print --model opus-4.5-thinking --force --workspace "$(pwd)" "$PROMPT" || echo "Changelog update skipped"
 
       - name: Upload firmware to Supabase master/
         if: ${{ steps.bot_check.outputs.is_bot != 'true' && steps.check_changes.outputs.skip != 'true' }}
