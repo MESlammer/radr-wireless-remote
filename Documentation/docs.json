@@ -61,6 +61,13 @@
                 "pages": [
                   "radr/faqs"
                 ]
+              },
+              {
+                "group": "Changelog",
+                "pages": [
+                  "radr/guides/changelog/overview",
+                  "radr/guides/changelog/v0.0.0"
+                ]
               }
             ]
           },
