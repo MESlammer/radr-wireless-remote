@@ -19,7 +19,6 @@
 #include "services/memory.h"
 #include "services/vibrator.h"
 #include "services/wm.h"
-// test comment for change.
 #include "state/remote.h"
 
 // Function declaration for resetting middle button counter
