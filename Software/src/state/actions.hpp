@@ -197,31 +197,6 @@ namespace actions {
 
     auto espSilentRestart = []() { esp_restart(); };
 
-    auto startWiFiPortal = []() {
-        // Give a second for any pending MQTT messages to be sent before
-        // disconnecting WiFi Otherwise we lose this state_change message until
-        // the device comes back online.
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // disconnect from the network
-        WiFi.disconnect(true);
-
-        wm.setConfigPortalBlocking(false);
-        wm.setConnectTimeout(30);
-        wm.setConnectRetries(5);
-        wm.setEnableConfigPortal(true);
-        wm.setCleanConnect(true);
-        wm.startConfigPortal("RADR Setup");
-
-        // if the wifi is not currently connected then make a small task the
-        // looks for the wifi connection and sends an event.
-    };
-
-    auto stopWiFiPortal = []() {
-        wm.setConfigPortalBlocking(true);
-        wm.stopConfigPortal();
-    };
-
     auto enterDeepSleep = []() {
         // Disconnect from any connected devices first
         disconnect();

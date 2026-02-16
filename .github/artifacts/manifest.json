@@ -20,6 +20,10 @@
                 {
                     "path": "https://acjajruwevyyatztbkdf.supabase.co/storage/v1/object/public/radr-firmware/{{ branchName }}/firmware.bin",
                     "offset": 65536
+                },
+                {
+                    "path": "https://acjajruwevyyatztbkdf.supabase.co/storage/v1/object/public/radr-firmware/{{ branchName }}/littlefs.bin",
+                    "offset": 13172736
                 }
             ]
         }
