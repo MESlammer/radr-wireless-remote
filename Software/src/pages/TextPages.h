@@ -72,7 +72,7 @@ static const TextPage ossmHelpPage = {
     .description =
         "Visit research-and-desire.com/ossm for guides, troubleshooting, and "
         "firmware updates.",
-    .qrValue = "https://research-and-desire.com/ossm",
+    .qrValue = "https://research-and-desire.com/ossm", // TODO: put the correct URL here and make sure the QR code is generated correctly for it and make sure it's not overflowing the QR code's capacity,
     .leftButtonText = GO_BACK,
 };
 

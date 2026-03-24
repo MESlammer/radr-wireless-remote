@@ -185,23 +185,13 @@ void drawMenuFrame() {
 
     drawScrollBar(safeCurrentOption, numOptions - 1);
 
-    for (int i = 0; i < 5; i++) {
-        int optionIndex = safeCurrentOption - 2 + i;
-        
-        // Check if this position should show a menu item or be blank
-        if (optionIndex < 0 || optionIndex >= numOptions) {
-            // Draw actual blank area to clear any previous content
-            int y = Display::StatusbarHeight + Display::Padding::P1 + menuYOffset + tabBarHeight;
-            int x = Display::Padding::P1;
-            
-            if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-                tft.fillRect(x, y, menuWidth, menuItemHeight, Colors::black);
-                xSemaphoreGive(displayMutex);
-            }
-            menuYOffset += menuItemHeight;
-            continue;
-        }
+    // Clamp start index so items pin to top/bottom edges (no blank gaps)
+    int startIndex = safeCurrentOption - 2;
+    if (startIndex < 0) startIndex = 0;
+    if (startIndex > numOptions - 5) startIndex = numOptions - 5;
 
+    for (int i = 0; i < 5; i++) {
+        int optionIndex = startIndex + i;
         const MenuItem &option = options[optionIndex];
         bool isSelected = optionIndex == safeCurrentOption;
         drawMenuItem(i, option, isSelected);
