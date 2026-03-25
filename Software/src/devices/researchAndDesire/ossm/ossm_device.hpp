@@ -584,9 +584,10 @@ class OSSM : public Device {
         draw<LinearRailGraph>(&this->settings.stroke, &this->settings.depth, -1,
                               Display::PageHeight - 30, Display::WIDTH - 20, 20);
 
-        // Mode label
+        // Mode label (must use member variable — DynamicText stores a reference)
+        patternName = "Simple Penetration";
         patternNameDisplay =
-            draw<DynamicText>("Simple Penetration", -1, Display::HEIGHT - 70);
+            draw<DynamicText>(this->patternName, -1, Display::HEIGHT - 70);
 
         // Left encoder dial — Speed (purple)
         std::map<String, float *> leftParams = {
