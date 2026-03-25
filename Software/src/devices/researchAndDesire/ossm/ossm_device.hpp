@@ -12,6 +12,8 @@
 #include <services/leds.h>
 #include <structs/SettingPercents.h>
 
+#include <esp_wifi.h>
+
 #include "../../device.h"
 #include "state/remote.h"
 // Forward declaration for button counter reset function
@@ -21,6 +23,7 @@ extern void resetMiddleButtonCounter();
 #define OSSM_CHARACTERISTIC_UUID_SET_SPEED_KNOB_LIMIT \
     "522B443A-4F53-534D-1010-420BADBABE69"
 
+#define OSSM_CHARACTERISTIC_UUID_PAIRING "522B443A-4F53-534D-0010-420BADBABE69"
 #define OSSM_CHARACTERISTIC_UUID_STATE "522b443a-4f53-534d-2000-420badbabe69"
 #define OSSM_CHARACTERISTIC_UUID_PATTERNS "522b443a-4f53-534d-3000-420badbabe69"
 #define OSSM_CHARACTERISTIC_UUID_PATTERN_DESCRIPTION \
@@ -58,6 +61,7 @@ class OSSM : public Device {
     explicit OSSM(const NimBLEAdvertisedDevice *advertisedDevice)
         : Device(advertisedDevice) {
         characteristics = {
+            {"pairing", {NimBLEUUID(OSSM_CHARACTERISTIC_UUID_PAIRING)}},
             {"command", {NimBLEUUID(OSSM_CHARACTERISTIC_UUID_COMMAND)}},
             {"speedKnobLimit",
              {NimBLEUUID(OSSM_CHARACTERISTIC_UUID_SET_SPEED_KNOB_LIMIT)}},
@@ -263,6 +267,8 @@ class OSSM : public Device {
 
         isConnected = true;
         isFirstConnect = false;
+
+        shareWiFiCredentials();
     }
 
     void onPause(bool fullStop = false) override {
@@ -544,6 +550,8 @@ class OSSM : public Device {
         }
     }
 
+    void onWiFiConnected() override { shareWiFiCredentials(); }
+
     // Enable persistent encoder monitoring for safety-critical speed control
     bool needsPersistentLeftEncoderMonitoring() const override { return true; }
 
@@ -556,6 +564,52 @@ class OSSM : public Device {
     const char *getLeftEncoderParameterName() const override { return "Speed"; }
 
   private:
+    void shareWiFiCredentials() {
+        if (WiFi.status() != WL_CONNECTED) return;
+
+        // Read OSSM's pairing characteristic: "MAC;chip;wifiConnected;md5;version"
+        std::string pairingInfo = readString("pairing");
+        if (pairingInfo.empty()) {
+            ESP_LOGW(TAG, "Could not read pairing characteristic");
+            return;
+        }
+
+        // Parse field 2 (zero-indexed) — wifiConnected: "1" or "0"
+        int semicolonCount = 0;
+        size_t fieldStart = 0;
+        for (size_t i = 0; i < pairingInfo.size(); i++) {
+            if (pairingInfo[i] == ';') {
+                semicolonCount++;
+                if (semicolonCount == 2) {
+                    fieldStart = i + 1;
+                } else if (semicolonCount == 3) {
+                    if (pairingInfo.substr(fieldStart, i - fieldStart) == "1") {
+                        ESP_LOGI(TAG, "OSSM already has WiFi, skipping credential share");
+                        return;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Get RADR's credentials via ESP-IDF API
+        wifi_config_t conf;
+        if (esp_wifi_get_config(WIFI_IF_STA, &conf) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to get WiFi config");
+            return;
+        }
+        std::string ssid(reinterpret_cast<char*>(conf.sta.ssid));
+        std::string password(reinterpret_cast<char*>(conf.sta.password));
+        if (ssid.empty()) return;
+
+        // Write "9;SSID;PASSWORD" to pairing characteristic
+        if (send("pairing", "9;" + ssid + ";" + password)) {
+            ESP_LOGI(TAG, "WiFi credentials shared with OSSM (SSID: %s)", ssid.c_str());
+        } else {
+            ESP_LOGW(TAG, "Failed to write WiFi credentials to OSSM");
+        }
+    }
+
     void drawSimplePenetrationControls() {
         leftEncoder.setBoundaries(0, 100);
         leftEncoder.setAcceleration(50);
@@ -563,9 +617,11 @@ class OSSM : public Device {
         rightEncoder.setBoundaries(0, 100);
         rightEncoder.setAcceleration(50);
 
-        // Sync encoders to current values
-        leftEncoder.setEncoderValue(settings.speed);
-        rightEncoder.setEncoderValue(settings.stroke);
+        // Reset to match OSSM's resetSettingsSimplePen (speed=0, stroke=0)
+        settings.speed = 0;
+        settings.stroke = 0;
+        leftEncoder.setEncoderValue(0);
+        rightEncoder.setEncoderValue(0);
 
         // Bottom buttons — Menu (left, disabled until paused), Pause/Stop (center)
         menuButton = draw<TextButton>("Menu", pins::BTN_UNDER_L, -5,

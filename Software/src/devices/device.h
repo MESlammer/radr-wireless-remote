@@ -69,6 +69,7 @@ class Device : public NimBLEClientCallbacks {
     virtual void onResume() {}
     virtual void onConnect() {}
     virtual void onDisconnect() {}
+    virtual void onWiFiConnected() {}
     virtual void onDeviceMenuItemSelected(int index) {}
     virtual void onRestart() {}
     virtual void onMenuOpen() {}
