@@ -72,6 +72,10 @@ class Device : public NimBLEClientCallbacks {
     virtual void onDeviceMenuItemSelected(int index) {}
     virtual void onRestart() {}
     virtual void onMenuOpen() {}
+    virtual void enterStrokeEngineMode() {}
+    virtual void enterSimplePenetrationMode() {}
+    virtual void enterStreamingMode() {}
+    virtual bool isInSimplePenetrationMode() const { return false; }
 
     virtual void onRightEncoderChange(int value) {}
     virtual void onLeftEncoderChange(int value) {}

@@ -198,6 +198,21 @@ namespace actions {
         device->onRestart();
     };
 
+    auto sendStrokeEngine = []() {
+        if (device == nullptr) return;
+        device->enterStrokeEngineMode();
+    };
+
+    auto sendSimplePenetration = []() {
+        if (device == nullptr) return;
+        device->enterSimplePenetrationMode();
+    };
+
+    auto sendStreaming = []() {
+        if (device == nullptr) return;
+        device->enterStreamingMode();
+    };
+
     auto drawSettingsMenu = []() {
         tabBarHeight = 0;
         activeMenu = &settingsMenu;

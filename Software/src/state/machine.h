@@ -37,8 +37,12 @@ struct ossm_remote_state {
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::SETTINGS)] = "settings_menu"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::DEEP_SLEEP)] = "deep_sleep"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::RESTART)] = "restart"_s,
+            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_STROKE_ENGINE)] / sendStrokeEngine = "device_draw_control"_s,
+            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_SIMPLE_PENETRATION)] / sendSimplePenetration = "simple_penetration_control"_s,
+            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_STREAMING)] / sendStreaming = "streaming_screen"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_HELP)] = "ossm_help"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_RESTART)] = "ossm_restart_confirm"_s,
+            "main_menu"_s + event<left_button_pressed>[isConnected<> && isSimplePenetrationMode<>] / start = "simple_penetration_control"_s,
             "main_menu"_s + event<left_button_pressed>[isConnected<>] / start = "device_draw_control"_s,
             "main_menu"_s + event<connected_event> / start = "device_draw_control"_s,
             "main_menu"_s + event<disconnected_event> / disconnect,
@@ -97,6 +101,25 @@ struct ossm_remote_state {
             "device_stop"_s + event<left_button_pressed> / start = "device_draw_control"_s,
             "device_stop"_s + event<middle_button_pressed> / start = "device_draw_control"_s,
             "device_stop"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            // SimplePenetration Controller
+            "simple_penetration_control"_s + on_entry<_> / drawControl,
+            "simple_penetration_control"_s + event<left_button_pressed>[isPaused<>] = "main_menu"_s,
+            "simple_penetration_control"_s + event<middle_button_pressed> / softPause,
+            "simple_penetration_control"_s + event<middle_button_second_press> / stop = "simple_penetration_stop"_s,
+            "simple_penetration_control"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            // SimplePenetration Stop (separate from device_stop so resume returns to correct state)
+            "simple_penetration_stop"_s + on_entry<_> / (drawPage(deviceStopPage), stop),
+            "simple_penetration_stop"_s + event<right_button_pressed> / disconnect = "main_menu"_s,
+            "simple_penetration_stop"_s + event<left_button_pressed> / start = "simple_penetration_control"_s,
+            "simple_penetration_stop"_s + event<middle_button_pressed> / start = "simple_penetration_control"_s,
+            "simple_penetration_stop"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            // Streaming Screen
+            "streaming_screen"_s + on_entry<_> / drawPage(streamingPage),
+            "streaming_screen"_s + event<left_button_pressed> = "main_menu"_s,
+            "streaming_screen"_s + event<disconnected_event> / disconnect = "main_menu"_s,
 
             // OSSM Help
             "ossm_help"_s + on_entry<_> / drawPage(ossmHelpPage),

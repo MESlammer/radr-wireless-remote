@@ -34,6 +34,9 @@ class OSSM : public Device {
     std::string patternName = DEFAULT_OSSM_PATTERN_NAME;
     bool isFirstConnect = true;
 
+    enum class OssmMode { StrokeEngine, SimplePenetration };
+    OssmMode operationMode = OssmMode::StrokeEngine;
+
     // Reference to the pattern name display component for color control
     DynamicText *patternNameDisplay = nullptr;
 
@@ -69,6 +72,10 @@ class OSSM : public Device {
     NimBLEUUID getServiceUUID() override { return NimBLEUUID(OSSM_SERVICE_ID); }
 
     void drawControls() override {
+        if (operationMode == OssmMode::SimplePenetration) {
+            drawSimplePenetrationControls();
+            return;
+        }
         leftEncoder.setBoundaries(0, 100);
         leftEncoder.setAcceleration(50);
 
@@ -242,12 +249,16 @@ class OSSM : public Device {
             }
         }
 
-        // finally, we set inital preferences and go to stroke engine mode
+        // finally, we set inital preferences and go to the active mode
         send("speedKnobLimit", "false");
-        send("command", "go:strokeEngine");
-        vTaskDelay(pdMS_TO_TICKS(250));
-        // TODO: A bug on AJ's dev unit requires two "go:strokeEngine" commands.
-        send("command", "go:strokeEngine");
+        if (operationMode == OssmMode::SimplePenetration) {
+            send("command", "go:simplePenetration");
+        } else {
+            send("command", "go:strokeEngine");
+            vTaskDelay(pdMS_TO_TICKS(250));
+            // TODO: A bug on AJ's dev unit requires two "go:strokeEngine" commands.
+            send("command", "go:strokeEngine");
+        }
         vTaskDelay(pdMS_TO_TICKS(250));
 
         isConnected = true;
@@ -369,6 +380,24 @@ class OSSM : public Device {
         send("command", "go:restart");
     }
 
+    void enterStrokeEngineMode() override {
+        operationMode = OssmMode::StrokeEngine;
+        send("command", "go:strokeEngine");
+    }
+
+    void enterSimplePenetrationMode() override {
+        operationMode = OssmMode::SimplePenetration;
+        send("command", "go:simplePenetration");
+    }
+
+    void enterStreamingMode() override {
+        send("command", "go:streaming");
+    }
+
+    bool isInSimplePenetrationMode() const override {
+        return operationMode == OssmMode::SimplePenetration;
+    }
+
     void onDeviceMenuItemSelected(int index) override { setPattern(index); }
 
     void drawDeviceMenu() override {
@@ -477,6 +506,7 @@ class OSSM : public Device {
     void syncLeftEncoder() { leftEncoder.setEncoderValue(settings.speed); }
 
     void onLeftBumperClick() override {
+        if (operationMode == OssmMode::SimplePenetration) return;
         rightFocusedIndex = (rightFocusedIndex + 2) %
                             3;  // Safe decrement and wrap: 0->2, 1->0, 2->1
         syncRightEncoder();
@@ -485,6 +515,7 @@ class OSSM : public Device {
     }
 
     void onRightBumperClick() override {
+        if (operationMode == OssmMode::SimplePenetration) return;
         rightFocusedIndex =
             (rightFocusedIndex + 1) % 3;  // Safe increment and wrap: 2->0
         syncRightEncoder();
@@ -493,6 +524,10 @@ class OSSM : public Device {
     }
 
     void onRightEncoderChange(int value) override {
+        if (operationMode == OssmMode::SimplePenetration) {
+            setStroke(value);
+            return;
+        }
         if (rightFocusedIndex == 0) {
             setDepth(value);
         } else if (rightFocusedIndex == 1) {
@@ -521,6 +556,74 @@ class OSSM : public Device {
     const char *getLeftEncoderParameterName() const override { return "Speed"; }
 
   private:
+    void drawSimplePenetrationControls() {
+        leftEncoder.setBoundaries(0, 100);
+        leftEncoder.setAcceleration(50);
+
+        rightEncoder.setBoundaries(0, 100);
+        rightEncoder.setAcceleration(50);
+
+        // Sync encoders to current values
+        leftEncoder.setEncoderValue(settings.speed);
+        rightEncoder.setEncoderValue(settings.stroke);
+
+        // Bottom buttons — Menu (left, disabled until paused), Pause/Stop (center)
+        menuButton = draw<TextButton>("Menu", pins::BTN_UNDER_L, -5,
+                                      Display::HEIGHT - 30, 90);
+        pauseStopButton =
+            draw<TextButton>("Pause", pins::BTN_UNDER_C, DISPLAY_WIDTH / 2 - 60,
+                             Display::HEIGHT - 30, 120);
+
+        // Set initial disabled state for menu button (enabled only when paused)
+        if (menuButton) {
+            menuButton->setColors(Colors::disabled, Colors::black);
+        }
+
+        // LinearRailGraph — stroke visualization (depth fixed at 100 for full range)
+        settings.depth = 100;
+        draw<LinearRailGraph>(&this->settings.stroke, &this->settings.depth, -1,
+                              Display::PageHeight - 30, Display::WIDTH - 20, 20);
+
+        // Mode label
+        patternNameDisplay =
+            draw<DynamicText>("Simple Penetration", -1, Display::HEIGHT - 70);
+
+        // Left encoder dial — Speed (purple)
+        std::map<String, float *> leftParams = {
+            {"Speed", &this->settings.speed}};
+        leftEncoderDial = draw<EncoderDial>(EncoderDial::Props{
+            .encoder = &leftEncoder,
+            .parameters = leftParams,
+            .focusedIndex = &this->leftFocusedIndex,
+            .x = 0 + 5,
+            .y = (int16_t)(Display::PageY + 35),
+            .mapToLeftLed = true});
+
+        if (leftEncoderDial) {
+            std::vector<uint16_t> leftColors = {Colors::speed};
+            leftEncoderDial->setParameterColors(leftColors);
+        }
+
+        // Right encoder dial — Stroke only (green)
+        rightFocusedIndex = 0;
+        std::map<String, float *> rightParams = {
+            {"Stroke", &this->settings.stroke}};
+        rightEncoderDial = draw<EncoderDial>(EncoderDial::Props{
+            .encoder = &rightEncoder,
+            .parameters = rightParams,
+            .focusedIndex = &this->rightFocusedIndex,
+            .x = (int16_t)(DISPLAY_WIDTH - 90 - 5),
+            .y = (int16_t)(Display::PageY + 35),
+            .mapToRightLed = true});
+
+        if (rightEncoderDial) {
+            std::vector<uint16_t> rightColors = {Colors::stroke};
+            rightEncoderDial->setParameterColors(rightColors);
+        }
+
+        onResume();
+    }
+
     void updatePatternNameFromState() {
         // Find the pattern name that corresponds to the current pattern from
         // BLE state

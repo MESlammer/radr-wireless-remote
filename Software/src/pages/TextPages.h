@@ -90,4 +90,10 @@ static const TextPage ossmRestartingPage = {
     .description = "Your OSSM is restarting. Please wait...",
 };
 
+static const TextPage streamingPage = {
+    .title = "Streaming Active",
+    .description = "Your OSSM is in streaming mode. Position commands are being received from an external source.",
+    .leftButtonText = "Menu",
+};
+
 #endif  // TEXT_PAGES_H

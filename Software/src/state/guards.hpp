@@ -64,3 +64,8 @@ template <typename Event = left_button_pressed>
 auto isConnected = [](const Event &event) -> bool {
     return device != nullptr && device->isConnected;
 };
+
+template <typename Event = left_button_pressed>
+auto isSimplePenetrationMode = [](const Event &event) -> bool {
+    return device != nullptr && device->isInSimplePenetrationMode();
+};

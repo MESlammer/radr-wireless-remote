@@ -68,12 +68,10 @@ static const int numSettingsMenu = settingsMenu.size();
 // OSSM Menu (shown in OSSM tab when connected)
 
 static std::vector<MenuItem> ossmMenu = {
-    {MenuItemE::OSSM_STROKE_ENGINE, "Stroke Engine", researchAndDesireWaves,
-     "Coming soon", Colors::disabled, Colors::disabled},
+    {MenuItemE::OSSM_STROKE_ENGINE, "Stroke Engine", researchAndDesireWaves},
     {MenuItemE::OSSM_SIMPLE_PENETRATION, "Simple Penetration",
-     researchAndDesireWaves, "Coming soon", Colors::disabled, Colors::disabled},
-    {MenuItemE::OSSM_STREAMING, "Streaming", researchAndDesireTerminal,
-     "Coming soon", Colors::disabled, Colors::disabled},
+     researchAndDesireWaves},
+    {MenuItemE::OSSM_STREAMING, "Streaming", researchAndDesireTerminal},
     {MenuItemE::OSSM_PAIRING, "Pairing", bitmap_link, "Coming soon",
      Colors::disabled, Colors::disabled},
     {MenuItemE::OSSM_UPDATE, "Update OSSM", bitmap_update, "Coming soon",
