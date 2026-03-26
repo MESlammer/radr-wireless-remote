@@ -127,11 +127,7 @@ jobs:
 
       - name: Upload firmware to Supabase Storage
         run: |
-          supabase storage rm "ss:///radr-firmware/master/firmware.bin" --experimental --yes 
-          supabase storage rm "ss:///radr-firmware/master/partitions.bin" --experimental --yes 
-          supabase storage rm "ss:///radr-firmware/master/bootloader.bin" --experimental --yes 
-          supabase storage rm "ss:///radr-firmware/master/littlefs.bin" --experimental --yes 
-          supabase storage rm "ss:///radr-firmware/master/manifest.json" --experimental --yes 
+          supabase storage rm "ss:///radr-firmware/master/firmware.bin" "ss:///radr-firmware/master/partitions.bin" "ss:///radr-firmware/master/bootloader.bin" "ss:///radr-firmware/master/littlefs.bin" "ss:///radr-firmware/master/manifest.json" --experimental --yes || true
           supabase storage cp ./firmware/firmware.bin "ss:///radr-firmware/master/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
           supabase storage cp ./firmware/partitions.bin "ss:///radr-firmware/master/partitions.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
           supabase storage cp ./firmware/bootloader.bin "ss:///radr-firmware/master/bootloader.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental

@@ -40,12 +40,7 @@ jobs:
       - name: Upload files to production/
         run: |
           # Delete existing files in production/
-          supabase storage rm "ss:///radr-firmware/production/firmware.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/production/partitions.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/production/bootloader.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/production/littlefs.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/production/manifest.json" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/production/version.json" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/production/firmware.bin" "ss:///radr-firmware/production/partitions.bin" "ss:///radr-firmware/production/bootloader.bin" "ss:///radr-firmware/production/littlefs.bin" "ss:///radr-firmware/production/manifest.json" "ss:///radr-firmware/production/version.json" --experimental --yes || true
           
           # Upload firmware binaries
           supabase storage cp ./firmware/firmware.bin "ss:///radr-firmware/production/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
