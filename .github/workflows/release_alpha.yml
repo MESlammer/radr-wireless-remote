@@ -40,12 +40,7 @@ jobs:
       - name: Upload files to alpha/
         run: |
           # Delete existing files in alpha/
-          supabase storage rm "ss:///radr-firmware/alpha/firmware.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/alpha/partitions.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/alpha/bootloader.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/alpha/littlefs.bin" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/alpha/manifest.json" --experimental --yes || true
-          supabase storage rm "ss:///radr-firmware/alpha/version.json" --experimental --yes || true
+          supabase storage rm "ss:///radr-firmware/alpha/firmware.bin" "ss:///radr-firmware/alpha/partitions.bin" "ss:///radr-firmware/alpha/bootloader.bin" "ss:///radr-firmware/alpha/littlefs.bin" "ss:///radr-firmware/alpha/manifest.json" "ss:///radr-firmware/alpha/version.json" --experimental --yes || true
           
           # Upload firmware binaries
           supabase storage cp ./firmware/firmware.bin "ss:///radr-firmware/alpha/firmware.bin" --content-type "application/octet-stream" --cache-control "no-cache" --experimental
