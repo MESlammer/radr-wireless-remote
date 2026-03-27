@@ -76,4 +76,11 @@ extern const TextPage ossmPairingConnectingPage;
 extern const TextPage ossmPairingSuccessPage;
 extern const TextPage ossmPairingWifiPage;
 
+// OSSM Update Pages (defined in ossmUpdate.cpp)
+extern const TextPage ossmUpdateCheckPage;
+extern const TextPage ossmUpdateConfirmPage;
+extern const TextPage ossmUpdateUpdatingPage;
+extern const TextPage ossmUpdateNonePage;
+extern const TextPage ossmUpdateWifiPage;
+
 #endif  // TEXT_PAGES_H

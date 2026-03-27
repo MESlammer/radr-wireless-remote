@@ -25,6 +25,7 @@
 #include "pages/TextPages.h"
 #include "pages/controller.h"
 #include "pages/menus.h"
+#include "pages/ossmUpdate.h"
 #include "pages/pairing.h"
 #include "services/leftEncoderMonitor.h"
 
@@ -231,6 +232,35 @@ namespace actions {
             ossmRestartTimer = nullptr;
         }
     };
+
+    auto sendOssmUpdate = []() {
+        if (device == nullptr) return;
+        device->onUpdate();
+    };
+
+    static TimerHandle_t ossmUpdateTimer = nullptr;
+
+    auto startOssmUpdateWait = []() {
+        if (ossmUpdateTimer != nullptr) {
+            xTimerDelete(ossmUpdateTimer, 0);
+        }
+        ossmUpdateTimer = xTimerCreate(
+            "ossmUpdate", pdMS_TO_TICKS(90000), pdFALSE, nullptr,
+            [](TimerHandle_t) {
+                ossmUpdateTimer = nullptr;
+                fireStateMachineDoneEvent();
+            });
+        xTimerStart(ossmUpdateTimer, 0);
+    };
+
+    auto cancelOssmUpdateWait = []() {
+        if (ossmUpdateTimer != nullptr) {
+            xTimerDelete(ossmUpdateTimer, 0);
+            ossmUpdateTimer = nullptr;
+        }
+    };
+
+    auto checkOssmUpdate = []() { startOssmUpdateCheck(); };
 
     auto sendStrokeEngine = []() {
         if (device == nullptr) return;

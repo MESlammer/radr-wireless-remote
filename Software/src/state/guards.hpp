@@ -69,3 +69,10 @@ template <typename Event = left_button_pressed>
 auto isSimplePenetrationMode = [](const Event &event) -> bool {
     return device != nullptr && device->isInSimplePenetrationMode();
 };
+
+// Declared in ossmUpdate.cpp
+extern bool ossmUpdateIsAvailable;
+
+template <typename Event = done>
+const auto hasOssmUpdate =
+    [](const Event &event) { return ossmUpdateIsAvailable; };

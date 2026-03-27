@@ -46,6 +46,8 @@ struct ossm_remote_state {
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_RESTART)] = "ossm_restart_confirm"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_PAIRING) && isOnline<>] = "ossm_pairing"_s,
             "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_PAIRING)] = "ossm_pairing_wifi"_s,
+            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_UPDATE) && isOnline<>] = "ossm_update_check"_s,
+            "main_menu"_s + event<right_button_pressed>[isOption<>(MenuItemE::OSSM_UPDATE)] = "ossm_update_wifi"_s,
             "main_menu"_s + event<left_button_pressed>[isConnected<> && isSimplePenetrationMode<>] / start = "simple_penetration_control"_s,
             "main_menu"_s + event<left_button_pressed>[isConnected<>] / start = "device_draw_control"_s,
             "main_menu"_s + event<connected_event> / start = "device_draw_control"_s,
@@ -157,6 +159,33 @@ struct ossm_remote_state {
             "ossm_pairing_wifi"_s + on_entry<_> / drawPage(ossmPairingWifiPage),
             "ossm_pairing_wifi"_s + event<left_button_pressed> = "main_menu"_s,
             "ossm_pairing_wifi"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            // OSSM Update
+            "ossm_update_check"_s + on_entry<_> / (drawPage(ossmUpdateCheckPage), checkOssmUpdate),
+            "ossm_update_check"_s + event<done>[hasOssmUpdate<>] = "ossm_update_confirm"_s,
+            "ossm_update_check"_s + event<done> = "ossm_update_none"_s,
+            "ossm_update_check"_s + event<left_button_pressed> = "main_menu"_s,
+            "ossm_update_check"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            "ossm_update_confirm"_s + on_entry<_> / drawPage(ossmUpdateConfirmPage),
+            "ossm_update_confirm"_s + event<right_button_pressed> / sendOssmUpdate = "ossm_update_updating"_s,
+            "ossm_update_confirm"_s + event<left_button_pressed> = "main_menu"_s,
+            "ossm_update_confirm"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            "ossm_update_updating"_s + on_entry<_> / (drawPage(ossmUpdateUpdatingPage), startOssmUpdateWait),
+            "ossm_update_updating"_s + event<disconnected_event> / disconnectQuiet,
+            "ossm_update_updating"_s + event<done> / disconnectQuiet = "device_search"_s,
+            "ossm_update_updating"_s + event<left_button_pressed> / disconnect = "main_menu"_s,
+            "ossm_update_updating"_s + boost::sml::on_exit<_> / cancelOssmUpdateWait,
+
+            "ossm_update_none"_s + on_entry<_> / drawPage(ossmUpdateNonePage),
+            "ossm_update_none"_s + event<left_button_pressed> = "main_menu"_s,
+            "ossm_update_none"_s + event<right_button_pressed> = "main_menu"_s,
+            "ossm_update_none"_s + event<disconnected_event> / disconnect = "main_menu"_s,
+
+            "ossm_update_wifi"_s + on_entry<_> / drawPage(ossmUpdateWifiPage),
+            "ossm_update_wifi"_s + event<left_button_pressed> = "main_menu"_s,
+            "ossm_update_wifi"_s + event<disconnected_event> / disconnect = "main_menu"_s,
 
             "restart"_s + on_entry<_> / espRestart,
             "restart"_s = X,

@@ -386,6 +386,10 @@ class OSSM : public Device {
         send("command", "go:restart");
     }
 
+    void onUpdate() override {
+        send("command", "go:update");
+    }
+
     void enterStrokeEngineMode() override {
         operationMode = OssmMode::StrokeEngine;
         send("command", "go:strokeEngine");

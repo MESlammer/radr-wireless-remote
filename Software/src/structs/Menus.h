@@ -73,8 +73,7 @@ static std::vector<MenuItem> ossmMenu = {
      researchAndDesireWaves},
     {MenuItemE::OSSM_STREAMING, "Streaming", researchAndDesireTerminal},
     {MenuItemE::OSSM_PAIRING, "Pairing", bitmap_link},
-    {MenuItemE::OSSM_UPDATE, "Update OSSM", bitmap_update, "Coming soon",
-     Colors::disabled, Colors::disabled},
+    {MenuItemE::OSSM_UPDATE, "Update OSSM", bitmap_update},
     {MenuItemE::OSSM_HELP, "Help", researchAndDesireHeart},
     {MenuItemE::OSSM_RESTART, "Restart OSSM", bitmap_restart},
 };

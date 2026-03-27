@@ -78,36 +78,32 @@ static void drawPairingCodeScreen(const String &pairingCode) {
     tft.setCursor(titleX, titleY);
     tft.print("OSSM Pairing");
 
-    // Instruction text (left side, above the code)
+    // Description text (left side, next to QR code)
     tft.setFont(&FreeSans9pt7b);
     tft.setTextColor(Colors::lightGray);
 
-    // Measure 9pt font ascent so text baseline is positioned correctly
-    int16_t fx1, fy1;
-    uint16_t fw, fh;
-    tft.getTextBounds("A", 0, 0, &fx1, &fy1, &fw, &fh);
-    int16_t instrY = titleY + th + Display::Padding::P3 - fy1;
+    const int16_t textMargin = Display::Padding::P2;
+    int16_t descY = titleY + th + Display::Padding::P3;
 
-    // QR code (right-aligned, next to instruction + code)
+    // QR code (right-aligned, next to text)
     String qrUrl = String(RAD_SERVER) + "?ossm=" + pairingCode;
     int qrCodeWidth = drawQRCode(
         tft, qrUrl,
-        {.y = instrY,
-         .maxHeight = Display::PageHeight - instrY - Display::Padding::P2});
+        {.y = descY,
+         .maxHeight = Display::PageHeight - descY - textMargin});
 
-    wrapText(tft, "Enter code on your\nRAD Dashboard\nor scan QR:",
-             {.x = Display::Padding::P2,
-              .y = instrY,
-              .rightPadding = Display::Padding::P3 + qrCodeWidth});
+    wrapText(tft, "Enter on your\nRAD Dashboard:",
+             {.x = textMargin,
+              .y = descY,
+              .rightPadding = textMargin + qrCodeWidth});
 
     // Pairing code — large and prominent
     tft.setFont(&FreeSansBold12pt7b);
     tft.setTextColor(Colors::white);
 
     tft.getTextBounds(pairingCode.c_str(), 0, 0, &x1, &y1, &tw, &th);
-    // Position code below instruction text, left-aligned with text
-    int16_t codeX = Display::Padding::P2;
-    int16_t codeY = instrY + 70 - y1;
+    int16_t codeX = textMargin;
+    int16_t codeY = descY + Display::Padding::P4 + Display::Padding::P3 - y1;
     tft.setCursor(codeX, codeY);
     tft.print(pairingCode);
 
