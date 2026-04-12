@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "RADR") (type "KiCad") (uri "${KIPRJMOD}/../../footprints/RADR.pretty") (options "") (descr ""))
+)
