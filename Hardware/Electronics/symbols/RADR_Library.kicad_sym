@@ -61,6 +61,39 @@
 				)
 			)
 		)
+		(property "MFG" "SILICON LABS"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "CP2102-GMR"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C6568"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "ki_keywords" "USB UART bridge"
 			(at 0 0 0)
 			(show_name no)
@@ -693,6 +726,39 @@
 				)
 			)
 		)
+		(property "MPN" "MAX17048G+T10"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFG" "MAXIM"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C2682616"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "ki_keywords" "Battery gauge I2C"
 			(at 0 0 0)
 			(show_name no)
@@ -1277,6 +1343,39 @@
 				)
 			)
 		)
+		(property "MFG" "TWGMC"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "SI2301"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C727151"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "ki_keywords" "P-Channel MOSFET"
 			(at 0 0 0)
 			(show_name no)
@@ -1565,7 +1664,7 @@
 				)
 			)
 		)
-		(property "Datasheet" ""
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C431548.pdf"
 			(at 0 -7.62 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1577,6 +1676,39 @@
 			)
 		)
 		(property "Description" "Switch, single pole double throw"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFG" "SHOU HAN"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "SK12D07VG5"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C431548"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1782,7 +1914,7 @@
 				)
 			)
 		)
-		(property "Footprint" "SW_Push_TS24CA"
+		(property "Footprint" "RADR:SW-SMD_TS24CA"
 			(at 0 7.874 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1793,7 +1925,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20190521/C393942_591A9E318887EFA4274D34029981AD99.pdf"
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C393942.pdf"
 			(at 0 9.652 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1806,6 +1938,39 @@
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
 			(at 0 5.842 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFG" "SHOU HAN"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "TS24CA"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C393942"
+			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(hide yes)
@@ -2001,7 +2166,40 @@
 				)
 			)
 		)
-		(property "Description" "Constant-current/constant-voltage linear charger for single cell lithium-ion batteries with 2.9V Trickle Charge, 4.5V to 6.5V VDD, -40 to +85 degree Celsius, TSOT-23-6"
+		(property "Description" "Constant-current/constant-voltage linear charger for single cell lithium-ion batteries with 2.9V Trickle Charge, 4.5V to 6.5V VDD, -40 to +85 degree Celsius, SOT-23-5"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFG" "JSMSEMI"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "TP4054"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C5381776"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2443,7 +2641,7 @@
 				(justify left top)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_XL-1010RGBC-WS2812B_1.0x1.0mm"
+		(property "Footprint" "RADR:LED_Xinglight_XL-1010RGBC-WS2812B_1.0mm_1.0mm"
 			(at 1.27 -7.62 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2455,7 +2653,7 @@
 				(justify left top)
 			)
 		)
-		(property "Datasheet" "https://atta.szlcsc.com/upload/public/pdf/source/20240218/17D2BD8F4295D202E0F5662BF6E5539A.pdf"
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C5349953.pdf"
 			(at 2.54 -9.525 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2468,6 +2666,39 @@
 			)
 		)
 		(property "Description" "RGB LED with integrated controller, 2.0 x 2.0 mm, 12 mA"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFG" "XINGLIGHT"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "XL-1010RGBC-2812B"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "lcsc-bom-key" "C5349953"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
