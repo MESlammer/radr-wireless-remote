@@ -1,6 +1,7 @@
 #include "wm.h"
 
 #include "WiFi.h"
+#include "devices/device.h"
 #include "state/remote.h"
 
 WiFiManager wm;
@@ -11,4 +12,13 @@ void initWM() {
 
     wm.setSaveConfigCallback(
         []() { stateMachine->process_event(wifi_connected()); });
+
+    // When RADR gets an IP, share WiFi credentials with paired OSSM (if any)
+    WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+        xTimerPendFunctionCall([](void*, uint32_t) {
+            if (device != nullptr && device->isConnected) {
+                device->onWiFiConnected();
+            }
+        }, nullptr, 0, pdMS_TO_TICKS(100));
+    }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
 }

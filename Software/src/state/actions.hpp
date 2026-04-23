@@ -25,6 +25,8 @@
 #include "pages/TextPages.h"
 #include "pages/controller.h"
 #include "pages/menus.h"
+#include "pages/ossmUpdate.h"
+#include "pages/pairing.h"
 #include "services/leftEncoderMonitor.h"
 
 // Forward declarations to avoid circular dependencies
@@ -34,6 +36,9 @@ void clearDiscoveredDevices();
 void connectToDiscoveredDevice(int index);
 void startScanWithTimeout(int timeoutMs, void (*onComplete)());
 void onScanComplete();
+
+// Defined in remote.cpp — breaks circular dependency with stateMachine type
+void fireStateMachineDoneEvent();
 
 namespace actions {
 
@@ -64,7 +69,7 @@ namespace actions {
         }
     };
 
-    auto disconnect = []() {
+    auto disconnectImpl = [](bool quiet) {
         // Safety-critical: Ensure left encoder monitoring is stopped if the
         // device needs it
         if (device != nullptr &&
@@ -80,9 +85,13 @@ namespace actions {
         // and then stop scanning.
         NimBLEScan *pScan = NimBLEDevice::getScan();
         pScan->stop();
-        playBuzzerPattern(BuzzerPattern::DEVICE_DISCONNECTED);
-        setLed(LEDColors::logoBlue, 255, 1500);
+        if (!quiet) {
+            playBuzzerPattern(BuzzerPattern::DEVICE_DISCONNECTED);
+            setLed(LEDColors::logoBlue, 255, 1500);
+        }
     };
+
+    auto disconnect = []() { disconnectImpl(false); };
 
     auto drawPage = [](const TextPage &page) {
         // Capture reference to static const object - safe since it lives in
@@ -176,13 +185,100 @@ namespace actions {
         releaseAllIndividualLeds();
         setLed(LEDColors::idle, 50,
                1500);  // Soft white idle (Blends with backlight bleed)
-        activeMenu = &mainMenu;
-        activeMenuCount = numMainMenu;
+
+        // Default tab: OSSM if connected, RADR otherwise
+        if (device != nullptr && device->isConnected) {
+            device->onMenuOpen();  // OSSM → menu.idle
+            activeTab = 0;  // OSSM tab
+            activeMenu = &ossmMenu;
+            activeMenuCount = numOssmMenu;
+        } else {
+            activeTab = 1;  // RADR tab
+            activeMenu = &mainMenu;
+            activeMenuCount = numMainMenu;
+        }
+        currentOption = 0;
         clearPage();
-        drawMenu();
+        drawMenuWithTabs();
+    };
+
+    auto sendOssmRestart = []() {
+        if (device == nullptr) return;
+        device->onRestart();
+    };
+
+    // Quiet disconnect: cleanup without buzzer/LED (used during expected
+    // restart flow where we don't want to alarm the user)
+    auto disconnectQuiet = []() { disconnectImpl(true); };
+
+    static TimerHandle_t ossmRestartTimer = nullptr;
+
+    auto startOssmRestartWait = []() {
+        if (ossmRestartTimer != nullptr) {
+            xTimerDelete(ossmRestartTimer, 0);
+        }
+        ossmRestartTimer = xTimerCreate(
+            "ossmRestart", pdMS_TO_TICKS(8500), pdFALSE, nullptr,
+            [](TimerHandle_t) {
+                ossmRestartTimer = nullptr;
+                fireStateMachineDoneEvent();
+            });
+        xTimerStart(ossmRestartTimer, 0);
+    };
+
+    auto cancelOssmRestartWait = []() {
+        if (ossmRestartTimer != nullptr) {
+            xTimerDelete(ossmRestartTimer, 0);
+            ossmRestartTimer = nullptr;
+        }
+    };
+
+    auto sendOssmUpdate = []() {
+        if (device == nullptr) return;
+        device->onUpdate();
+    };
+
+    static TimerHandle_t ossmUpdateTimer = nullptr;
+
+    auto startOssmUpdateWait = []() {
+        if (ossmUpdateTimer != nullptr) {
+            xTimerDelete(ossmUpdateTimer, 0);
+        }
+        ossmUpdateTimer = xTimerCreate(
+            "ossmUpdate", pdMS_TO_TICKS(90000), pdFALSE, nullptr,
+            [](TimerHandle_t) {
+                ossmUpdateTimer = nullptr;
+                fireStateMachineDoneEvent();
+            });
+        xTimerStart(ossmUpdateTimer, 0);
+    };
+
+    auto cancelOssmUpdateWait = []() {
+        if (ossmUpdateTimer != nullptr) {
+            xTimerDelete(ossmUpdateTimer, 0);
+            ossmUpdateTimer = nullptr;
+        }
+    };
+
+    auto checkOssmUpdate = []() { startOssmUpdateCheck(); };
+
+    auto sendStrokeEngine = []() {
+        if (device == nullptr) return;
+        device->enterStrokeEngineMode();
+    };
+
+    auto sendSimplePenetration = []() {
+        if (device == nullptr) return;
+        device->enterSimplePenetrationMode();
+    };
+
+    auto sendStreaming = []() {
+        if (device == nullptr) return;
+        device->enterStreamingMode();
     };
 
     auto drawSettingsMenu = []() {
+        tabBarHeight = 0;
         activeMenu = &settingsMenu;
         activeMenuCount = numSettingsMenu;
         clearPage();
@@ -259,5 +355,7 @@ namespace actions {
         // conflicts The restart will clean up everything properly
         espSilentRestart();
     };
+
+    auto checkOssmPairing = []() { startOssmPairingCheck(); };
 
 }  // namespace actions

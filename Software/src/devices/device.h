@@ -69,7 +69,15 @@ class Device : public NimBLEClientCallbacks {
     virtual void onResume() {}
     virtual void onConnect() {}
     virtual void onDisconnect() {}
+    virtual void onWiFiConnected() {}
     virtual void onDeviceMenuItemSelected(int index) {}
+    virtual void onRestart() {}
+    virtual void onUpdate() {}
+    virtual void onMenuOpen() {}
+    virtual void enterStrokeEngineMode() {}
+    virtual void enterSimplePenetrationMode() {}
+    virtual void enterStreamingMode() {}
+    virtual bool isInSimplePenetrationMode() const { return false; }
 
     virtual void onRightEncoderChange(int value) {}
     virtual void onLeftEncoderChange(int value) {}

@@ -1,7 +1,10 @@
 #include "menus.h"
 
+#include <Fonts/FreeSans9pt7b.h>
 #include <components/DynamicText.h>
+#include <components/TextButton.h>
 #include <devices/device.h>
+#include <pins.h>
 #include <services/encoder.h>
 #include <services/coms.h>
 #include <state/remote.h>
@@ -15,6 +18,8 @@ static volatile bool menuTaskExitRequested = false;
 std::vector<MenuItem> *activeMenu = &mainMenu;
 int activeMenuCount = numMainMenu;
 int currentOption = 0;
+int activeTab = 0;
+int tabBarHeight = 0;
 
 static const int scrollWidth = 6;
 
@@ -27,6 +32,73 @@ static const int menuItemDescriptionHeight = menuItemHeight * 1.5;
 
 static int menuYOffset = 0;
 
+static const int tabHeight = 24;
+static const int tabGap = 4;  // gap below tab bar
+
+void drawTabBar() {
+    const int16_t tabY = Display::StatusbarHeight;
+    const int16_t tabWidth = Display::WIDTH / 2;
+
+    if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        // Clear tab bar area
+        tft.fillRect(0, tabY, Display::WIDTH, tabHeight, Colors::black);
+
+        // OSSM tab (left)
+        bool ossmActive = (activeTab == 0);
+        tft.fillRect(0, tabY, tabWidth, tabHeight,
+                     ossmActive ? Colors::bgGray900 : Colors::black);
+        tft.setFont(&FreeSans9pt7b);
+        tft.setTextColor(ossmActive ? Colors::textForeground
+                                    : Colors::disabled);
+        // Center "OSSM" text in left half
+        int16_t x1, y1;
+        uint16_t tw, th;
+        tft.getTextBounds("OSSM", 0, 0, &x1, &y1, &tw, &th);
+        tft.setCursor((tabWidth - tw) / 2, tabY + tabHeight / 2 + th / 2);
+        tft.print("OSSM");
+
+        // RADR tab (right)
+        bool radrActive = (activeTab == 1);
+        tft.fillRect(tabWidth, tabY, tabWidth, tabHeight,
+                     radrActive ? Colors::bgGray900 : Colors::black);
+        tft.setTextColor(radrActive ? Colors::textForeground
+                                    : Colors::disabled);
+        tft.getTextBounds("RADR", 0, 0, &x1, &y1, &tw, &th);
+        tft.setCursor(tabWidth + (tabWidth - tw) / 2,
+                      tabY + tabHeight / 2 + th / 2);
+        tft.print("RADR");
+
+        xSemaphoreGive(displayMutex);
+    }
+}
+
+void drawMenuWithTabs() {
+    tabBarHeight = tabHeight + tabGap;
+
+    // If OSSM tab is active but no device connected, show placeholder
+    if (activeTab == 0 && (device == nullptr || !device->isConnected)) {
+        activeMenu = nullptr;
+        activeMenuCount = 0;
+        drawTabBar();
+
+        if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+            int placeholderY =
+                Display::StatusbarHeight + tabBarHeight + Display::PageHeight / 3;
+            tft.setFont(&FreeSans9pt7b);
+            tft.setTextColor(Colors::disabled);
+            int16_t x1, y1;
+            uint16_t tw, th;
+            tft.getTextBounds("No OSSM connected", 0, 0, &x1, &y1, &tw, &th);
+            tft.setCursor((Display::WIDTH - tw) / 2, placeholderY);
+            tft.print("No OSSM connected");
+            xSemaphoreGive(displayMutex);
+        }
+        return;
+    }
+
+    drawMenu();
+}
+
 static void drawMenuItem(int index, const MenuItem &option,
                          bool selected = false) {
     auto text = option.name;
@@ -35,7 +107,7 @@ static void drawMenuItem(int index, const MenuItem &option,
     auto unfocusedColor = option.unfocusedColor > 0 ? option.unfocusedColor
                                                     : Colors::textBackground;
 
-    int y = Display::StatusbarHeight + Display::Padding::P1 + menuYOffset;
+    int y = Display::StatusbarHeight + Display::Padding::P1 + menuYOffset + tabBarHeight;
     int x = Display::Padding::P1;
 
     bool shouldDrawDescription = option.description.has_value() && selected;
@@ -114,23 +186,13 @@ void drawMenuFrame() {
 
     drawScrollBar(safeCurrentOption, numOptions - 1);
 
-    for (int i = 0; i < 5; i++) {
-        int optionIndex = safeCurrentOption - 2 + i;
-        
-        // Check if this position should show a menu item or be blank
-        if (optionIndex < 0 || optionIndex >= numOptions) {
-            // Draw actual blank area to clear any previous content
-            int y = Display::StatusbarHeight + Display::Padding::P1 + menuYOffset;
-            int x = Display::Padding::P1;
-            
-            if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-                tft.fillRect(x, y, menuWidth, menuItemHeight, Colors::black);
-                xSemaphoreGive(displayMutex);
-            }
-            menuYOffset += menuItemHeight;
-            continue;
-        }
+    // Clamp start index so items pin to top/bottom edges (no blank gaps)
+    int startIndex = safeCurrentOption - 2;
+    if (startIndex < 0) startIndex = 0;
+    if (startIndex > numOptions - 5) startIndex = numOptions - 5;
 
+    for (int i = 0; i < 5; i++) {
+        int optionIndex = startIndex + i;
         const MenuItem &option = options[optionIndex];
         bool isSelected = optionIndex == safeCurrentOption;
         drawMenuItem(i, option, isSelected);
@@ -183,7 +245,7 @@ void drawMenuTask(void *pvParameters) {
     // update, causing unexpected setting to be sent to the device.
     bool initialized = false;
     while (!initialized) {
-        if (isInCorrectState()) {
+        if (isInCorrectState() && activeMenuCount > 0) {
             // Disable wrap-around (false) to eliminate the problematic behavior
             rightEncoder.setBoundaries(0, activeMenuCount - 1, false);
             rightEncoder.setAcceleration(0);
@@ -194,13 +256,83 @@ void drawMenuTask(void *pvParameters) {
             }
             rightEncoder.setEncoderValue(boundedCurrentOption);
             currentOption = boundedCurrentOption;
-            
+
             initialized = true;
         }
         vTaskDelay(1);
     }
 
+    // Draw tab bar after initialization (after clearPage in drawMenu)
+    if (tabBarHeight > 0) {
+        drawTabBar();
+    }
+
+    // Shoulder button state for tab switching (only in main_menu)
+    bool lastLeftShoulderState = HIGH;
+    bool lastRightShoulderState = HIGH;
+
+    auto isInMainMenu = []() {
+        return stateMachine->is("main_menu"_s);
+    };
+
     while (isInCorrectState() && !menuTaskExitRequested) {
+        // Shoulder button polling for tab switching (main_menu only)
+        if (isInMainMenu() && tabBarHeight > 0) {
+            bool curLeftShoulder = digitalRead(pins::BTN_L_SHOULDER);
+            bool curRightShoulder = digitalRead(pins::BTN_R_SHOULDER);
+
+            bool shouldToggle =
+                (curLeftShoulder == LOW && lastLeftShoulderState == HIGH) ||
+                (curRightShoulder == LOW && lastRightShoulderState == HIGH);
+
+            if (shouldToggle) {
+                activeTab = (activeTab == 0) ? 1 : 0;
+                if (activeTab == 0) {
+                    if (device != nullptr && device->isConnected) {
+                        activeMenu = &ossmMenu;
+                        activeMenuCount = numOssmMenu;
+                    } else {
+                        activeMenu = nullptr;
+                        activeMenuCount = 0;
+                    }
+                } else {
+                    activeMenu = &mainMenu;
+                    activeMenuCount = numMainMenu;
+                }
+                currentOption = 0;
+
+                clearPage();
+                drawTabBar();
+
+                if (activeMenu != nullptr && activeMenuCount > 0) {
+                    rightEncoder.setBoundaries(0, activeMenuCount - 1, false);
+                    rightEncoder.setEncoderValue(0);
+                    lastEncoderValue = -1;  // Force redraw
+                    drawMenuFrame();
+                } else {
+                    // No OSSM connected placeholder
+                    if (xSemaphoreTake(displayMutex, pdMS_TO_TICKS(50)) ==
+                        pdTRUE) {
+                        int placeholderY =
+                            Display::StatusbarHeight + tabBarHeight +
+                            Display::PageHeight / 3;
+                        tft.setFont(&FreeSans9pt7b);
+                        tft.setTextColor(Colors::disabled);
+                        int16_t x1, y1;
+                        uint16_t tw, th;
+                        tft.getTextBounds("No OSSM connected", 0, 0, &x1, &y1,
+                                          &tw, &th);
+                        tft.setCursor((Display::WIDTH - tw) / 2, placeholderY);
+                        tft.print("No OSSM connected");
+                        xSemaphoreGive(displayMutex);
+                    }
+                }
+            }
+
+            lastLeftShoulderState = curLeftShoulder;
+            lastRightShoulderState = curRightShoulder;
+        }
+
         int rawEncoderValue = rightEncoder.readEncoder();
         currentOption = rawEncoderValue;
 
@@ -412,7 +544,14 @@ void drawDeviceListMenu() {
     
     clearPage();
     vTaskDelay(10 / portTICK_PERIOD_MS);
-    
+
+    // Draw button labels
+    const int16_t buttonY = Display::HEIGHT - 30;
+    TextButton selectButton(SELECT_STRING, pins::BTN_UNDER_R, Display::WIDTH - 90, buttonY);
+    selectButton.tick();
+    TextButton retryButton(RETRY_STRING, pins::BTN_UNDER_C, (Display::WIDTH - 70) / 2, buttonY);
+    retryButton.tick();
+
     xTaskCreatePinnedToCore(drawDeviceListTask, "drawDeviceListTask",
                             5 * configMINIMAL_STACK_SIZE, NULL, 5,
                             &deviceListTaskHandle, 1);

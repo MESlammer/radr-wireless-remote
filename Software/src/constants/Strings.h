@@ -15,6 +15,8 @@ static const char DEVICE_STOP_DESCRIPTION[] PROGMEM =
 static const char GO_BACK[] PROGMEM = "Back";
 static const char GO_HOME[] PROGMEM = "Home";
 static const char CANCEL_STRING[] PROGMEM = "Cancel";
+static const char RETRY_STRING[] PROGMEM = "Retry";
+static const char SELECT_STRING[] PROGMEM = "Select";
 
 // MENUS
 

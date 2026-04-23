@@ -27,5 +27,6 @@ void setScreenBrightness(uint8_t brightness);
 void dimScreen();
 void restoreScreenBrightness();
 void turnOffScreen();
+void drawImage(const uint16_t* imageData, uint16_t width, uint16_t height);
 
 #endif

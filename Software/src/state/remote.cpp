@@ -13,3 +13,9 @@ void initStateMachine()
         stateMachine->process_event(done{});
     }
 }
+
+void fireStateMachineDoneEvent() {
+    if (stateMachine) {
+        stateMachine->process_event(done{});
+    }
+}

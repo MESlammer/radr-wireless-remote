@@ -50,7 +50,8 @@ void drawControllerTask(void *pvParameters)
 
     auto isInCorrectState = []()
     {
-        return stateMachine->is("device_draw_control"_s);
+        return stateMachine->is("device_draw_control"_s) ||
+               stateMachine->is("simple_penetration_control"_s);
     };
 
     while (isInCorrectState() && device != nullptr)

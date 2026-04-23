@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "components/Icons.h"
+#include "constants/Colors.h"
 #include "constants/Strings.h"
 // numeric enum for every menu item ever.
 enum MenuItemE {
@@ -18,7 +19,14 @@ enum MenuItemE {
     PAIRING,
     UPDATE,
     DEVICE_MENU_ITEM,
-    DEEP_SLEEP
+    DEEP_SLEEP,
+    OSSM_STROKE_ENGINE,
+    OSSM_SIMPLE_PENETRATION,
+    OSSM_STREAMING,
+    OSSM_PAIRING,
+    OSSM_UPDATE,
+    OSSM_HELP,
+    OSSM_RESTART
 };
 
 struct MenuItem {
@@ -56,5 +64,20 @@ static std::vector<MenuItem> settingsMenu = {
 };
 
 static const int numSettingsMenu = settingsMenu.size();
+
+// OSSM Menu (shown in OSSM tab when connected)
+
+static std::vector<MenuItem> ossmMenu = {
+    {MenuItemE::OSSM_STROKE_ENGINE, "Stroke Engine", researchAndDesireWaves},
+    {MenuItemE::OSSM_SIMPLE_PENETRATION, "Simple Penetration",
+     researchAndDesireWaves},
+    {MenuItemE::OSSM_STREAMING, "Streaming", researchAndDesireTerminal},
+    {MenuItemE::OSSM_PAIRING, "Pairing", bitmap_link},
+    {MenuItemE::OSSM_UPDATE, "Update OSSM", bitmap_update},
+    {MenuItemE::OSSM_HELP, "Help", researchAndDesireHeart},
+    {MenuItemE::OSSM_RESTART, "Restart OSSM", bitmap_restart},
+};
+
+static const int numOssmMenu = ossmMenu.size();
 
 #endif

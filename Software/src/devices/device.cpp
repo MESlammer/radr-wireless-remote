@@ -70,6 +70,9 @@ void Device::connectionTask(void *pvParameter) {
             pClient =
                 NimBLEDevice::getClientByPeerAddress(advDevice->getAddress());
             if (pClient) {
+                // Re-register callbacks — previous Device destructor cleared
+                // them, so the reused client has no callbacks set.
+                pClient->setClientCallbacks(device, false);
                 updateStatusText("Attempting fast reconnect...");
                 ESP_LOGD(TAG,
                          "Found existing client for peer: %s; attempting fast "
@@ -256,11 +259,17 @@ void Device::onDisconnect(NimBLEClient *pClient, int reason) {
     playBuzzerPattern(BuzzerPattern::DEVICE_DISCONNECTED);
     ESP_LOGD(TAG, "Disconnected from %s", getName());
     NimBLEDevice::getScan()->start(0);
-    if (stateMachine) {
-        stateMachine->process_event(disconnected_event());
-    }
-    this->onDisconnect();
-    setLed(LEDColors::logoBlue, 255, 1500);
+
+    // Defer state machine event to the FreeRTOS timer task to avoid
+    // use-after-free: the disconnect action deletes this device, so we
+    // must not be inside a device method when that happens.
+    xTimerPendFunctionCall(
+        [](void *, uint32_t) {
+            if (stateMachine) {
+                stateMachine->process_event(disconnected_event());
+            }
+        },
+        nullptr, 0, pdMS_TO_TICKS(10));
 }
 
 bool Device::send(const std::string &command, const std::string &value) {

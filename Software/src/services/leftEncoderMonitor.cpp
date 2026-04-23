@@ -21,9 +21,8 @@ void leftEncoderMonitorTask(void *pvParameters) {
         using namespace sml;
         bool inControl = stateMachine->is("device_draw_control"_s);
         bool inMenu = stateMachine->is("device_menu"_s);
-        ESP_LOGV("LeftEncoderMonitor", "State check - Control: %s, Menu: %s",
-                 inControl ? "true" : "false", inMenu ? "true" : "false");
-        return inControl || inMenu;
+        bool inSimplePenetration = stateMachine->is("simple_penetration_control"_s);
+        return inControl || inMenu || inSimplePenetration;
     };
 
     while (isInDeviceStates()) {

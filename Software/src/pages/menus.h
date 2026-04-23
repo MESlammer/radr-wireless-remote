@@ -14,10 +14,14 @@
 extern std::vector<MenuItem> *activeMenu;
 extern int activeMenuCount;
 extern int currentOption;
+extern int activeTab;      // 0=OSSM, 1=RADR
+extern int tabBarHeight;   // 0 when no tabs, ~28 when tabs shown
 
 extern TaskHandle_t menuTaskHandle;
 
 void drawMenu();
+void drawMenuWithTabs();
+void drawTabBar();
 void drawDeviceListMenu();
 
 #endif

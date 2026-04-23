@@ -65,4 +65,22 @@ static const TextPage wifiConnectedPage = {
     .description = WIFI_CONNECTED_DESCRIPTION,
     .leftButtonText = GO_BACK};
 
+// OSSM Pages (defined in genericPages.cpp — extern to avoid 11x static duplication)
+extern const TextPage ossmHelpPage;
+extern const TextPage ossmRestartConfirmPage;
+extern const TextPage ossmRestartingPage;
+extern const TextPage streamingPage;
+
+// OSSM Pairing Pages (defined in pairing.cpp)
+extern const TextPage ossmPairingConnectingPage;
+extern const TextPage ossmPairingSuccessPage;
+extern const TextPage ossmPairingWifiPage;
+
+// OSSM Update Pages (defined in ossmUpdate.cpp)
+extern const TextPage ossmUpdateCheckPage;
+extern const TextPage ossmUpdateConfirmPage;
+extern const TextPage ossmUpdateUpdatingPage;
+extern const TextPage ossmUpdateNonePage;
+extern const TextPage ossmUpdateWifiPage;
+
 #endif  // TEXT_PAGES_H
